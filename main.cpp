@@ -1,5 +1,5 @@
 #include <iostream>
-
+#include <algorithm>
 using namespace std;
 
 class Piece {
@@ -18,7 +18,7 @@ private:
     constexpr static const int pieceVals[7] = {None, Pawn, Knight, Bishop, Rook, Queen, King};
 
 public:
-    const int White = 8;   //0b01000
+    static const int White = 8;   //0b01000
     static const int Black = 16;  //0b10000
 
 
@@ -30,12 +30,14 @@ public:
         return 0b00111 & piece;
     }
 
-    static int getPieceFromChar(char piece) {
-        bool isWhite = isupper(piece);
-        tolower(piece);
-        cout << piece << endl;
+    static int getPieceFromChar(char pieceChar) {
+        bool isWhite = isupper(pieceChar);
+        string piece = to_string(pieceChar);
+        transform(piece.begin(), piece.end(), piece.begin(), ::tolower);
+        pieceChar = piece[0];
+        //cout << piece << endl;
         int pieceNum;
-        switch (piece) {
+        switch (pieceChar) {
             case 'p':
                 pieceNum = 0;
                 break;
@@ -55,10 +57,11 @@ public:
                 pieceNum = 5;
                 break;
             default:
-                throw invalid_argument("Uknown piece type " + to_string(piece));
+                throw invalid_argument("Unknown piece type " + piece);
         }
-        cout << piece << endl;
-        int pieceVal = pieceVals[pieceNum];
+        //cout << piece << endl;
+        int pieceVal = pieceVals[pieceNum] || isWhite ? 0b01000 : 0b10000;
+        return pieceVal;
 
 
     }
@@ -69,12 +72,14 @@ public:
 // The main board class
 class Board {
 public:
-    int squares[64];
+    int squares[64]{};
     bool isWhiteMove;
 
     Board() {
         // Setup squares list
         string fenpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+        isWhiteMove = true;
+        cout << fenpos << endl;
         int current = 0;
         for (char fenChar: fenpos) {
 
@@ -83,8 +88,9 @@ public:
                 continue;
             }
             // If char is a number (x amount of empty spaces)
+            // Stuck here in this loop for some reason :/
             if (isdigit(fenChar)) {
-                for (int i = 0; i < (int) fenChar; i++) {
+                for (int i = 0; i < stoi(to_string(fenChar)); i++) {
 
                     squares[current] = Piece::None;
                     current++;
@@ -92,11 +98,35 @@ public:
                 continue;
             }
             // If char is a piece
-
+            squares[current] = Piece::getPieceFromChar(fenChar);
             current++;
 
         }
+        for (int i = 0; i < size(squares); i++) {
+            cout << squares[i] << endl;
+        }
 
+    }
+
+    void printBoard() {
+        cout << "test" << endl;
+        for (int i = 0; i < 64; i++) {
+            int square = squares[i];
+            string pieces = ".PpNnBbRrQqKk";
+            int pieceIndex = 0;
+            if (Piece::getSide(square) == Piece::White) {
+                pieceIndex--;
+            }
+            pieceIndex += Piece::getPieceType(square);
+            string pieceChar = " " + to_string(pieces[pieceIndex]) + " ";
+            cout << pieceChar;
+            // Newline if next row of chess board
+            if ((i + 1) % 8 == 0) {
+                cout << endl;
+            }
+
+
+        }
     }
 };
 
@@ -108,7 +138,7 @@ public:
 
 int main() {
     //Driver Code
-    Board board;
-
+    Board board = Board();
+    board.printBoard();
     return 0;
 }
