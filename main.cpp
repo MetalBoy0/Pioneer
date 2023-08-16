@@ -1,5 +1,5 @@
 #include <iostream>
-#include <algorithm>
+
 using namespace std;
 
 class Piece {
@@ -32,9 +32,7 @@ public:
 
     static int getPieceFromChar(char pieceChar) {
         bool isWhite = isupper(pieceChar);
-        string piece = to_string(pieceChar);
-        transform(piece.begin(), piece.end(), piece.begin(), ::tolower);
-        pieceChar = piece[0];
+
         //cout << piece << endl;
         int pieceNum;
         switch (pieceChar) {
@@ -47,7 +45,7 @@ public:
             case 'b':
                 pieceNum = 2;
                 break;
-            case 'r':
+            case 'r': // rook
                 pieceNum = 3;
                 break;
             case 'q':
@@ -57,7 +55,7 @@ public:
                 pieceNum = 5;
                 break;
             default:
-                throw invalid_argument("Unknown piece type " + piece);
+                throw invalid_argument("Unknown piece type " + to_string(pieceChar));
         }
         //cout << piece << endl;
         int pieceVal = pieceVals[pieceNum] || isWhite ? 0b01000 : 0b10000;
@@ -93,13 +91,13 @@ public:
                 for (int i = 0; i < stoi(to_string(fenChar)); i++) {
 
                     squares[current] = Piece::None;
-                    current++;
+                    current = current + 1;
                 }
                 continue;
             }
             // If char is a piece
             squares[current] = Piece::getPieceFromChar(fenChar);
-            current++;
+            current = current + 1;
 
         }
         for (int i = 0; i < size(squares); i++) {
