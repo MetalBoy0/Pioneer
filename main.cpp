@@ -1,5 +1,6 @@
 #include <iostream>
 
+
 using namespace std;
 
 class Piece {
@@ -37,28 +38,46 @@ public:
         int pieceNum;
         switch (pieceChar) {
             case 'p':
-                pieceNum = 0;
-                break;
-            case 'n':
                 pieceNum = 1;
                 break;
-            case 'b':
+            case 'n':
                 pieceNum = 2;
                 break;
-            case 'r': // rook
+            case 'b':
                 pieceNum = 3;
                 break;
-            case 'q':
+            case 'r': // rook
                 pieceNum = 4;
                 break;
-            case 'k':
+            case 'q':
                 pieceNum = 5;
+                break;
+            case 'k':
+                pieceNum = 6;
+                break;
+            case 'P':
+                pieceNum = 1;
+                break;
+            case 'N':
+                pieceNum = 2;
+                break;
+            case 'B':
+                pieceNum = 3;
+                break;
+            case 'R': // rook
+                pieceNum = 4;
+                break;
+            case 'Q':
+                pieceNum = 5;
+                break;
+            case 'K':
+                pieceNum = 6;
                 break;
             default:
                 throw invalid_argument("Unknown piece type " + to_string(pieceChar));
         }
         //cout << piece << endl;
-        int pieceVal = pieceVals[pieceNum] || isWhite ? 0b01000 : 0b10000;
+        int pieceVal = pieceVals[pieceNum] | (isWhite ? 0b01000 : 0b10000);
         return pieceVal;
 
 
@@ -66,6 +85,27 @@ public:
 
 };
 
+
+class Move {
+public:
+    int from{};
+    int to{};
+    int movePiece{};
+    int toPiece{};
+    bool isWhiteToMove{};
+    bool isCapture{};
+
+    Move(int fromSquare, int toSquare, int movePiece, int toPiece) {
+
+        from = fromSquare;
+        to = toSquare;
+        movePiece = movePiece;
+        toPiece = toPiece;
+        isCapture = Piece::getPieceType(toPiece) != Piece::None;
+        isWhiteToMove = Piece::getSide(movePiece) == Piece::White;
+    }
+
+};
 
 // The main board class
 class Board {
@@ -87,8 +127,8 @@ public:
             }
             // If char is a number (x amount of empty spaces)
             // Stuck here in this loop for some reason :/
-            if (isdigit(fenChar)) {
-                for (int i = 0; i < stoi(to_string(fenChar)); i++) {
+            if (fenChar >= '0' && fenChar <= '9') {
+                for (int i = 0; i < (int) fenChar - (int) '0'; i++) {
 
                     squares[current] = Piece::None;
                     current = current + 1;
@@ -110,13 +150,15 @@ public:
         cout << "test" << endl;
         for (int i = 0; i < 64; i++) {
             int square = squares[i];
-            string pieces = ".PpNnBbRrQqKk";
+            string pieces[] = {" . ", " p ", " n ", " b ", " r ", " q ", " k ", " P ", " N ", " B ", " R ", " Q ",
+                               " K "};
             int pieceIndex = 0;
-            if (Piece::getSide(square) == Piece::White) {
-                pieceIndex--;
-            }
+
             pieceIndex += Piece::getPieceType(square);
-            string pieceChar = " " + to_string(pieces[pieceIndex]) + " ";
+            if (Piece::getSide(square) == Piece::White) {
+                pieceIndex = pieceIndex + 6;
+            }
+            string pieceChar = pieces[pieceIndex];
             cout << pieceChar;
             // Newline if next row of chess board
             if ((i + 1) % 8 == 0) {
@@ -125,6 +167,17 @@ public:
 
 
         }
+    }
+
+    Move getMove(int from, int to) {
+        Move move = *new Move(from, to, squares[from], squares[to]);
+        return move;
+    }
+
+    void MakeMove(Move move) {
+        squares[move.to] = squares[move.from];
+        squares[move.from] = Piece::None;
+
     }
 };
 
@@ -138,5 +191,12 @@ int main() {
     //Driver Code
     Board board = Board();
     board.printBoard();
+
+    while (true) {
+        // Main input loop
+
+        string input = cin << "user > ";
+    }
+
     return 0;
 }
