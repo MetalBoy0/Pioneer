@@ -3,6 +3,7 @@
 
 using namespace std;
 
+
 class Piece {
 
 public:
@@ -181,22 +182,28 @@ public:
     }
 };
 
-
-// Piece Class
-
-
+int to1dIndex(int x, int y) {
+    return y * 8 + x;
+}
 
 
 int main() {
     //Driver Code
     Board board = Board();
-    board.printBoard();
+    //board.printBoard();
 
     while (true) {
         // Main input loop
         string input;
         cin >> input;
-
+        if (input == "d") {
+            board.printBoard();
+        }
+        if (input == "makemove") {
+            //string coords = input.substr(9,3);
+            cout << input << endl;
+            //board.MakeMove(move);
+        }
     }
 
     return 0;
