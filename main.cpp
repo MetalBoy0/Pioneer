@@ -141,9 +141,6 @@ public:
             current = current + 1;
 
         }
-        for (int i = 0; i < size(squares); i++) {
-            cout << squares[i] << endl;
-        }
 
     }
 
@@ -195,7 +192,7 @@ int main() {
     while (true) {
         // Main input loop
         string input;
-        cin >> input;
+        cin >> noskipws >> input;
         if (input == "d") {
             board.printBoard();
         }
