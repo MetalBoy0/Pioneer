@@ -194,8 +194,9 @@ int main() {
 
     while (true) {
         // Main input loop
+        string input;
+        cin >> input;
 
-        string input = cin << "user > ";
     }
 
     return 0;
