@@ -2,9 +2,15 @@
 #include <iostream>
 #include "main.h"
 #include "legal.h"
+#include "moves.h"
+
+int to1dIndex(int x, int y) {
+    return y * 8 + x;
+}
+
 
 void Board::makeMove(Move move) {
-    bool legal = isLegal(move);
+    bool legal = Rules::isLegal(move);
     if (legal) {
         squares[move.to] = squares[move.from];
         squares[move.from] = Piece::None;
@@ -12,6 +18,32 @@ void Board::makeMove(Move move) {
 
 }
 
+
+Board::Board() {
+    // Setup squares list
+    string fenpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+    isWhiteMove = true;
+    cout << fenpos << endl;
+    int current = 0;
+    for (char fenChar: fenpos) {
+        // If char is a / (new chess row)
+        if ('/' == fenChar) {
+            continue;
+        }
+        // If char is a number (x amount of empty spaces)
+        // Stuck here in this loop for some reason :/
+        if (fenChar >= '0' && fenChar <= '9') {
+            for (int i = 0; i < (int) fenChar - (int) '0'; i++) {
+                squares[current] = Piece::None;
+                current = current + 1;
+            }
+            continue;
+        }
+        // If char is a piece
+        squares[current] = Piece::getPieceFromChar(fenChar);
+        current = current + 1;
+    }
+}
 
 int main() {
     //Driver Code
@@ -41,4 +73,6 @@ int main() {
 
     return 0;
 }
+
+
 

@@ -1,9 +1,10 @@
 #include "legal.h"
-#include "main.h"
+#include <iostream>
 
+using namespace std;
 
-
-bool pawnLegal(Move move) {
+bool Rules::pawnLegal(Move move) {
+    cout << "Pawn Legal" << endl;
     bool isWhite = Piece::getSide(move.movePiece) == Piece::White;
     int skipNum = (isWhite ? 1 : 7);
     int rank = Piece::getRank(move.from);
@@ -16,9 +17,10 @@ bool pawnLegal(Move move) {
         bool canSkip = rank == skipNum;
 
         // If pawn hasn't moved any direction sideways
-        if (rank == toRank) {
+        if (file == toFile) {
             // if pawn has only moved one square
             if (toRank - rank == forward) {
+
                 return true;
             }
                 //if pawn has moved two squares and it can skip
@@ -36,9 +38,9 @@ bool pawnLegal(Move move) {
 
 }
 
-bool isLegal(Move move) {
+bool Rules::isLegal(Move move) {
     if (move.movePiece == Piece::Pawn) {
-        return pawnLegal(move);
+        return Rules::pawnLegal(move);
     }
     if (move.movePiece == Piece::Knight) {
         return true; //knightLegal(move, board);
@@ -46,4 +48,3 @@ bool isLegal(Move move) {
         return true;
     }
 }
-

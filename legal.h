@@ -6,14 +6,14 @@
 #define CHESSENGINE_LEGAL_H
 
 #include "main.h"
+#include "moves.h"
 
+class Rules {
+public:
+    static bool pawnLegal(Move move);
 
-
-
-extern bool pawnLegal(Move move);
-
-
-extern bool isLegal(Move move);
+    static bool isLegal(Move move);
+};
 
 
 #endif //CHESSENGINE_LEGAL_H
