@@ -12,7 +12,7 @@
 #include "moves.h"
 using namespace std;
 
-
+int toBoardIndex(int x, int y);
 
 
 

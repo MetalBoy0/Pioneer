@@ -5,14 +5,18 @@
 #ifndef CHESSENGINE_LEGAL_H
 #define CHESSENGINE_LEGAL_H
 
-#include "main.h"
-#include "moves.h"
+class Move;
+class Board;
 
 class Rules {
 public:
-    static bool pawnLegal(Move move);
-
-    static bool isLegal(Move move);
+    static bool pawnLegal(Move move, Board board);
+    static bool knightLegal(Move move, Board board);
+    static bool bishopLegal(Move move, Board board);
+    static bool rookLegal(Move move, Board board);
+    static bool queenLegal(Move move, Board board);
+    static bool kingLegal(Move move, Board board);
+    static bool isLegal(Move move, Board board);
 };
 
 

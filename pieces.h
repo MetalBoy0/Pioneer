@@ -27,11 +27,11 @@ public:
         return 0b00111 & piece;
     }
 
-    static int getFile(int square) {
+    static int getRank(int square) {
         return (int) square / 8;
     }
 
-    static int getRank(int square) {
+    static int getFile(int square) {
         return square % 8;
     }
 
