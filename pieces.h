@@ -28,7 +28,7 @@ public:
     }
 
     static int getRank(int square) {
-        return (int) square / 8;
+        return 7-(int) square / 8;
     }
 
     static int getFile(int square) {

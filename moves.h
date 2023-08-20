@@ -14,8 +14,10 @@ public:
     int toPiece{};
     bool isWhiteToMove{};
     bool isCapture{};
-
+    bool promotion;
+    Move copy();
     Move(int fromSquare, int toSquare, int movePiece, int toPiece);
+    Move(); // overloaded constructor for Board::pastMove array
 };
 
 

@@ -17,6 +17,8 @@ public:
     static bool queenLegal(Move move, Board board);
     static bool kingLegal(Move move, Board board);
     static bool isLegal(Move move, Board board);
+    static bool checkLegal(Move move, Board board);
+    static bool isPsuedoLegal(Move move, Board board);
 };
 
 

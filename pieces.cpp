@@ -9,7 +9,7 @@ using namespace std;
 
 int Piece::getPieceFromChar(char pieceChar) {
     bool isWhite = isupper(pieceChar);
-    //cout << piece << endl;
+
     int pieceNum;
     int pieceVals[7] = {None, Pawn, Knight, Bishop, Rook, Queen, King};
     switch (pieceChar) {
@@ -52,7 +52,7 @@ int Piece::getPieceFromChar(char pieceChar) {
         default:
             throw invalid_argument("Unknown piece type " + to_string(pieceChar));
     }
-    //cout << piece << endl;
+
     int pieceVal = pieceVals[pieceNum] | (isWhite ? 0b01000 : 0b10000);
     return pieceVal;
 }
