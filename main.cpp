@@ -4,6 +4,11 @@
 #include "legal.h"
 #include "moves.h"
 #include "ai.h"
+
+
+
+
+
 int toBoardIndex(int x, int y) {
     // invert x
     x = 7 - x;
