@@ -3,53 +3,50 @@
 //
 #include "iostream"
 #include "ai.h"
+#include "time.h"
 
 using namespace std;
 
 Move BESTMOVE = *new Move();
 int BESTVAL = INT_MIN;
 bool ISWHITE;
-int DEPTH = 3;
+int DEPTH = 0;
+int CUTTOFFS = 0;
 int NODES;
 int PieceVals[] = {0, 1, 3, 3, 5, 7, 100};
 
 int eval(Board board);
 
-int minMax(Board board, int depth, int ply) {
+int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) {
     NODES++;
     if (depth == 0) {
         return eval(board);
     }
     list<Move> legalMoves = board.generateLegalMoves();
-    int bestVal;
-    if (board.isWhiteMove) {
-        bestVal = INT_MIN;
-    } else {
-        bestVal = INT_MAX;
-    }
 
-    Move bestmove;
     for (auto x: legalMoves) {
         board.makeMove(x);
-        int value = -minMax(board, depth - 1, ply + 1);
-        board.undoMove();
-        if (board.isWhiteMove) {
-            if (ply == 0 && value > bestVal) {
-                bestmove = x.copy();
-            }
-            bestVal = max(bestVal, value);
+        int value = -minMax(board, x, depth - 1, ply + 1, -beta, -alpha);
 
-        } else {
-            if (ply == 0 && value < bestVal) {
-                bestmove = x;
-            }
-            bestVal = min(bestVal, value);
+        board.undoMove();
+        if (value >= beta) {
+            CUTTOFFS++;
+            return beta;
         }
+        if (value >= alpha) {
+            alpha = value;
+            if (ply == 0) {
+                BESTMOVE = x;
+                BESTVAL = value;
+            }
+
+        }
+
+
+
     }
-    if (ply == 0) {
-        BESTMOVE = bestmove;
-    }
-    return bestVal;
+
+    return alpha;
 
 }
 
@@ -71,10 +68,18 @@ int eval(Board board) {
 
 Move findBestMove(Board board) {
     ISWHITE = board.isWhiteMove;
-    NODES = 0;
-    minMax(board, DEPTH, 0);
-    cout << "Nodes Searched: " << NODES << endl;
+    clock_t start = clock();
+
+    while (((clock() - start) * 1000) / CLOCKS_PER_SEC < 3000) {
+        NODES = 0;
+        CUTTOFFS = 0;
+        DEPTH++;
+        BESTVAL = 0;
+        minMax(board, Move(), DEPTH, 0, INT_MIN, INT_MAX);
+        cout << "Nodes Searched: " << NODES << " Nodes Pruned: " << CUTTOFFS << " Best Val: " << BESTVAL << endl;
+
+
+    }
+    cout << "Time Elapsed: " << ((clock() - start) * 1000) / CLOCKS_PER_SEC << "ms" << endl;
     return BESTMOVE;
-
 }
-
