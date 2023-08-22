@@ -1,9 +1,10 @@
 //
 // Created by Will on 8/20/2023.
 //
-#include "iostream"
+#include <iostream>
 #include "ai.h"
 #include "time.h"
+#include "list"
 
 using namespace std;
 
@@ -13,17 +14,60 @@ bool ISWHITE;
 int DEPTH = 0;
 int CUTTOFFS = 0;
 int NODES;
+
 int PieceVals[] = {0, 1, 3, 3, 5, 7, 100};
 
 int eval(Board board);
+int eval(Board board, Move move);
+void sortMove(Board board, list<Move> moves) {
+    moves.sort([](const Move& a, const Move& b) {
+        return a.isCapture < b.isCapture;
+    });
+
+}
+
+int quiessence(Board board, int alpha, int beta) {
+    int standPat = eval(board);
+    if (standPat >= beta) {
+        return beta;
+    }
+    if (alpha < standPat) {
+        alpha = standPat;
+    }
+    list<Move> legalMoves = board.generateLegalMoves();
+    sortMove(board, legalMoves);
+    for (auto x: legalMoves) {
+        if (x.isCapture) {
+            board.makeMove(x);
+            int score = -quiessence(board, -beta, -alpha);
+            board.undoMove();
+            if (score >= beta) {
+                return beta;
+            }
+            if (score > alpha) {
+                alpha = score;
+            }
+        }
+    }
+    return alpha;
+}
 
 int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) {
     NODES++;
     if (depth == 0) {
-        return eval(board);
+        if (board.isWhiteMove) {
+            return -quiessence(board, -beta, -alpha);
+        }
+        int value = quiessence(board, alpha, beta);
+        return value;
     }
     list<Move> legalMoves = board.generateLegalMoves();
+    sortMove(board, legalMoves);
+    if (legalMoves.empty()) {
 
+        cout << "No legal moves" << endl;
+        return ISWHITE ? INT_MIN : INT_MAX;
+    }
     for (auto x: legalMoves) {
         board.makeMove(x);
         int value = -minMax(board, x, depth - 1, ply + 1, -beta, -alpha);
@@ -33,7 +77,7 @@ int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) 
             CUTTOFFS++;
             return beta;
         }
-        if (value >= alpha) {
+        if (value > alpha) {
             alpha = value;
             if (ply == 0) {
                 BESTMOVE = x;
@@ -41,7 +85,6 @@ int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) 
             }
 
         }
-
 
 
     }
@@ -65,6 +108,13 @@ int eval(Board board) {
 
 }
 
+int eval(Move move, Board board) {
+    board.makeMove(move);
+    int value = eval(board);
+    board.undoMove();
+    return value;
+}
+
 
 Move findBestMove(Board board) {
     ISWHITE = board.isWhiteMove;
@@ -81,5 +131,8 @@ Move findBestMove(Board board) {
 
     }
     cout << "Time Elapsed: " << ((clock() - start) * 1000) / CLOCKS_PER_SEC << "ms" << endl;
+
+
+
     return BESTMOVE;
 }
