@@ -55,10 +55,9 @@ int quiessence(Board board, int alpha, int beta) {
 int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) {
     NODES++;
     if (depth == 0) {
-        if (board.isWhiteMove) {
-            return -quiessence(board, -beta, -alpha);
-        }
-        int value = quiessence(board, alpha, beta);
+
+        int value = eval(board);
+
         return value;
     }
     list<Move> legalMoves = board.generateLegalMoves();
@@ -75,13 +74,12 @@ int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) 
         board.undoMove();
         if (value >= beta) {
             CUTTOFFS++;
-            return beta;
+            return value;
         }
         if (value > alpha) {
             alpha = value;
             if (ply == 0) {
                 BESTMOVE = x;
-                BESTVAL = value;
             }
 
         }
@@ -96,12 +94,12 @@ int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) 
 int eval(Board board) {
     // sum of all pieces
     int boardVal = 0;
-    for (auto x: board.squares) {
+    for (int i = 0; i < 64; i++) {
+        int x = board.squares[i];
         bool isWhite = Piece::getSide(x) == Piece::White;
         int type = Piece::getPieceType(x);
 
-        int sideMulti = isWhite ? 1 : -1;
-        boardVal += PieceVals[type] * sideMulti;
+        boardVal += PieceVals[type];
 
     }
     return boardVal;
@@ -119,18 +117,21 @@ int eval(Move move, Board board) {
 Move findBestMove(Board board) {
     ISWHITE = board.isWhiteMove;
     clock_t start = clock();
-
+    DEPTH = 0;
     while (((clock() - start) * 1000) / CLOCKS_PER_SEC < 3000) {
         NODES = 0;
         CUTTOFFS = 0;
         DEPTH++;
-        BESTVAL = 0;
-        minMax(board, Move(), DEPTH, 0, INT_MIN, INT_MAX);
+        BESTVAL=0;
+        int perspective = ISWHITE ? 1 : -1;
+        BESTVAL=minMax(board, Move(), DEPTH, 0, INT_MIN, INT_MAX)*perspective;
         cout << "Nodes Searched: " << NODES << " Nodes Pruned: " << CUTTOFFS << " Best Val: " << BESTVAL << endl;
 
 
     }
+
     cout << "Time Elapsed: " << ((clock() - start) * 1000) / CLOCKS_PER_SEC << "ms" << endl;
+
 
 
 

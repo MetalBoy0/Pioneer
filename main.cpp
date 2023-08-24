@@ -197,7 +197,7 @@ list<Move> Board::generateLegalMoves() {
     Board::Board()
     {
 
-        isWhiteMove = false; // will get reverse back to true at the end of this function by updateBoard()
+        isWhiteMove = false;
         // Setup past moves list
         for (int i = 0; i < 100; i++) {
             pastMoves[i] = *new Move();
@@ -205,7 +205,6 @@ list<Move> Board::generateLegalMoves() {
 
         // Setup squares list
         string fenpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
-        isWhiteMove = true;
 
         int current = 0;
         for (char fenChar: fenpos) {
