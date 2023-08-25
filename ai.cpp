@@ -18,9 +18,11 @@ int NODES;
 int PieceVals[] = {0, 1, 3, 3, 5, 7, 100};
 
 int eval(Board board);
+
 int eval(Board board, Move move);
+
 void sortMove(Board board, list<Move> moves) {
-    moves.sort([](const Move& a, const Move& b) {
+    moves.sort([](const Move &a, const Move &b) {
         return a.isCapture < b.isCapture;
     });
 
@@ -60,6 +62,7 @@ int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) 
 
         return value;
     }
+
     list<Move> legalMoves = board.generateLegalMoves();
     sortMove(board, legalMoves);
     if (legalMoves.empty()) {
@@ -76,10 +79,18 @@ int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) 
             CUTTOFFS++;
             return value;
         }
+
         if (value > alpha) {
             alpha = value;
             if (ply == 0) {
                 BESTMOVE = x;
+                if (ply == 0) {
+                    char x1 = Piece::getFile(x.from) + 'a';
+                    char y1 = Piece::getRank(x.from) + '1';
+                    char x2 = Piece::getFile(x.to) + 'a';
+                    char y2 = Piece::getRank(x.to) + '1';
+                    cout << "Bestmove: " << x1 << y1 << x2 << y2 << endl;
+                }
             }
 
         }
@@ -93,16 +104,23 @@ int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) 
 
 int eval(Board board) {
     // sum of all pieces
-    int boardVal = 0;
+    float boardVal = 0;
+    list<Move> legalMoves = board.generateLegalMoves();
+
     for (int i = 0; i < 64; i++) {
         int x = board.squares[i];
         bool isWhite = Piece::getSide(x) == Piece::White;
         int type = Piece::getPieceType(x);
-
-        boardVal += PieceVals[type];
+        int sideMulti = isWhite == board.isWhiteMove ? 1 : -1;
+        boardVal += PieceVals[type] * sideMulti;
 
     }
-    return boardVal;
+    //reward for having more legal moves than opponent
+
+    float legalMovesVal = legalMoves.size() * 0.03;
+
+
+    return boardVal + legalMovesVal;
 
 }
 
@@ -122,17 +140,19 @@ Move findBestMove(Board board) {
         NODES = 0;
         CUTTOFFS = 0;
         DEPTH++;
-        BESTVAL=0;
+        BESTVAL = 0;
         int perspective = ISWHITE ? 1 : -1;
-        BESTVAL=minMax(board, Move(), DEPTH, 0, INT_MIN, INT_MAX)*perspective;
+        if (ISWHITE) {
+            BESTVAL = minMax(board, *new Move(), DEPTH, 0, INT_MIN, INT_MAX);
+        } else {
+            BESTVAL = minMax(board, *new Move(), DEPTH, 0, INT_MIN, INT_MAX);
+        }
         cout << "Nodes Searched: " << NODES << " Nodes Pruned: " << CUTTOFFS << " Best Val: " << BESTVAL << endl;
 
 
     }
 
     cout << "Time Elapsed: " << ((clock() - start) * 1000) / CLOCKS_PER_SEC << "ms" << endl;
-
-
 
 
     return BESTMOVE;
