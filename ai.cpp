@@ -65,11 +65,6 @@ int minMax(Board board, Move thisMove, int depth, int ply, int alpha, int beta) 
 
     list<Move> legalMoves = board.generateLegalMoves();
     sortMove(board, legalMoves);
-    if (legalMoves.empty()) {
-
-        cout << "No legal moves" << endl;
-        return ISWHITE ? INT_MIN : INT_MAX;
-    }
     for (auto x: legalMoves) {
         board.makeMove(x);
         int value = -minMax(board, x, depth - 1, ply + 1, -beta, -alpha);
@@ -106,6 +101,15 @@ int eval(Board board) {
     // sum of all pieces
     float boardVal = 0;
     list<Move> legalMoves = board.generateLegalMoves();
+    // Detect checkmate
+
+    if (legalMoves.size() == 0) {
+        if (board.isWhiteMove) {
+            return INT_MIN + 1 * (ISWHITE ? 1 : -1);
+        } else {
+            return INT_MAX - 1 * (ISWHITE ? 1 : -1);
+        }
+    }
 
     for (int i = 0; i < 64; i++) {
         int x = board.squares[i];
@@ -136,7 +140,7 @@ Move findBestMove(Board board) {
     ISWHITE = board.isWhiteMove;
     clock_t start = clock();
     DEPTH = 0;
-    while (((clock() - start) * 1000) / CLOCKS_PER_SEC < 3000) {
+    while (((clock() - start) * 1000) / CLOCKS_PER_SEC < 600000) {
         NODES = 0;
         CUTTOFFS = 0;
         DEPTH++;
@@ -147,7 +151,8 @@ Move findBestMove(Board board) {
         } else {
             BESTVAL = minMax(board, *new Move(), DEPTH, 0, INT_MIN, INT_MAX);
         }
-        cout << "Nodes Searched: " << NODES << " Nodes Pruned: " << CUTTOFFS << " Best Val: " << BESTVAL << endl;
+        cout << "DEPTH: " << DEPTH << "Nodes Searched: " << NODES << " Nodes Pruned: " << CUTTOFFS << " Best Val: "
+             << BESTVAL << endl;
 
 
     }

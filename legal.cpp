@@ -203,10 +203,15 @@ bool Rules::queenLegal(Move move, Board board) {
  */
 
 bool Rules::kingLegal(Move move, Board board) {
+    int rank = Piece::getRank(move.from);
+    int file = Piece::getFile(move.from);
+    int toRank = Piece::getRank(move.to);
+    int toFile = Piece::getFile(move.to);
     int possibleMoves[] = {-9, -8, -7, -1, 1, 7, 8, 9};
     // If the difference between the to and from square is in the possible moves array
     for (int possibleMove: possibleMoves) {
-        if (move.to - move.from == possibleMove) {
+        if (move.to - move.from == possibleMove && toRank - rank < 2 && toFile - rank < 2 && toRank - rank > -2 &&
+            toFile - rank > -2) {     // Make sure that the king isn't wrapping around the board
             return true;
         }
     }
