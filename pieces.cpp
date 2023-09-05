@@ -7,6 +7,7 @@
 
 using namespace std;
 
+// Returns the int corresponding to the char of the inputted piece type
 int Piece::getPieceFromChar(char pieceChar) {
     bool isWhite = isupper(pieceChar);
 

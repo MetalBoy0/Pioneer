@@ -18,17 +18,19 @@ int NODES;
 int PieceVals[] = {0, 1, 3, 3, 5, 7, 100};
 
 float eval(Board board);
-float eval(Board board , Move move);
 
+float eval(Board board, Move move);
 
+// Sorts the move list by the value of the move
 void sortMove(Board board, list<Move> moves) {
 
     moves.sort([&board](const Move &a, const Move &b) {
-        return eval(board,board.getMove(a.from, a.to)) < eval(board,board.getMove(b.from, b.to));
+        return eval(board, board.getMove(a.from, a.to)) < eval(board, board.getMove(b.from, b.to));
     });
 }
-
+// Quiescence search
 float quiessence(Board board, float alpha, float beta) {
+
     float standPat = eval(board);
     if (standPat >= beta) {
         return beta;
@@ -54,7 +56,9 @@ float quiessence(Board board, float alpha, float beta) {
     return alpha;
 }
 
+// Minimax search
 float minMax(Board board, Move thisMove, int depth, int ply, float alpha, float beta) {
+
     NODES++;
     if (depth == 0) {
 
@@ -79,11 +83,11 @@ float minMax(Board board, Move thisMove, int depth, int ply, float alpha, float 
             alpha = value;
             if (ply == 0) {
                 BESTMOVE = x;
-                    char x1 = Piece::getFile(x.from) + 'a';
-                    char y1 = Piece::getRank(x.from) + '1';
-                    char x2 = Piece::getFile(x.to) + 'a';
-                    char y2 = Piece::getRank(x.to) + '1';
-                    cout << "Bestmove: " << x1 << y1 << x2 << y2 << endl;
+                char x1 = Piece::getFile(x.from) + 'a';
+                char y1 = Piece::getRank(x.from) + '1';
+                char x2 = Piece::getFile(x.to) + 'a';
+                char y2 = Piece::getRank(x.to) + '1';
+                cout << "Bestmove: " << x1 << y1 << x2 << y2 << endl;
             }
 
         }
@@ -96,8 +100,9 @@ float minMax(Board board, Move thisMove, int depth, int ply, float alpha, float 
 }
 
 
-
+// Evaluate the board
 float eval(Board board) {
+
     // sum of all pieces
     float boardVal = 0;
     list<Move> legalMoves = board.generateLegalMoves();
@@ -127,8 +132,6 @@ float eval(Board board) {
             }
 
 
-
-
         }
         // multiplier for pieces in the center 4 files of the board
         if (file > 2 && file < 6) {
@@ -152,17 +155,18 @@ float eval(Board board) {
     return boardVal + legalMovesVal;
 
 }
+// Evaluate a move
+float eval(Board board, Move move) {
 
-float eval(Board board, Move move){
-    // Evaluate a move
     board.makeMove(move);
     float value = eval(board);
     board.undoMove();
     return value;
 }
 
-
+// Generates the best move found by the ai
 Move findBestMove(Board board) {
+
     ISWHITE = board.isWhiteMove;
     clock_t start = clock();
     DEPTH = 0;

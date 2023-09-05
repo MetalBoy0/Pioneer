@@ -38,7 +38,7 @@ bool Rules::checkLegal(Move move, Board board) {
  */
 
 bool Rules::pawnLegal(Move move, Board board) {
-
+    // Returns true if the move is legal for a pawn
     bool isWhite = Piece::getSide(move.movePiece) == Piece::White;
     int skipNum = (isWhite ? 1 : 6);
     int rank = Piece::getRank(move.from);
@@ -86,6 +86,7 @@ bool Rules::pawnLegal(Move move, Board board) {
  */
 
 bool Rules::knightLegal(Move move, Board board) {
+    // Returns true if the move is legal for a knight
     int possibleMoves[] = {-17, -15, -10, -6, 6, 10, 15, 17};
 
     // If the difference between the to and from square is in the possible moves array
@@ -108,6 +109,7 @@ bool Rules::knightLegal(Move move, Board board) {
  */
 
 bool Rules::bishopLegal(Move move, Board board) {
+    // returns true if the move is legal for a bishop
     int rank = Piece::getRank(move.from);
     int file = Piece::getFile(move.from);
     int toRank = Piece::getRank(move.to);
@@ -147,6 +149,7 @@ bool Rules::bishopLegal(Move move, Board board) {
  */
 
 bool Rules::rookLegal(Move move, Board board) {
+    // Returns true if the move is legal for a rook
     int rank = Piece::getRank(move.from);
     int file = Piece::getFile(move.from);
     int toRank = Piece::getRank(move.to);
@@ -203,6 +206,7 @@ bool Rules::queenLegal(Move move, Board board) {
  */
 
 bool Rules::kingLegal(Move move, Board board) {
+    // Returns true if the move is legal for a king
     int rank = Piece::getRank(move.from);
     int file = Piece::getFile(move.from);
     int toRank = Piece::getRank(move.to);
@@ -228,7 +232,7 @@ bool Rules::kingLegal(Move move, Board board) {
  */
 
 
-
+// Returns true if the move is legal for the piece type
 bool Rules::isPsuedoLegal(Move move, Board board) {
 
 
@@ -283,7 +287,7 @@ bool Rules::isPsuedoLegal(Move move, Board board) {
  * 1. Checks if the move is psuedo legal
  * 2. Checks if the move puts the king in check
  */
-
+// Makes sure that a move is legal
 bool Rules::isLegal(Move move, Board board) {
 
     //Will piece cause check to own king?

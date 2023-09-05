@@ -5,7 +5,7 @@
 #ifndef CHESSENGINE_PIECES_H
 #define CHESSENGINE_PIECES_H
 
-
+// A class that stores the piece types and colors
 class Piece {
 
 public:

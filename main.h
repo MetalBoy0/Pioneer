@@ -28,7 +28,7 @@ public:
     Board();
 
     void printBoard();
-
+    // Simple function to convert a from square and to square to a move on the board
     Move getMove(int from, int to) {
         Move move = *new Move(from, to, squares[from], squares[to]);
         return move;
@@ -39,7 +39,7 @@ public:
     void updateBoard();
     list<Move> generateLegalMoves();
 private:
-    Move pastMoves[100];
+    Move pastMoves[100]; // Stores the past moves
 };
 
 
