@@ -19,19 +19,19 @@ public:
 
     static const int White = 8;   //0b01000
     static const int Black = 16;  //0b10000
-    static int getSide(int piece) {
+    inline static int getSide(int piece) {
         return 0b11000 & piece;
     }
 
-    static int getPieceType(int piece) {
+    inline static int getPieceType(int piece) {
         return 0b00111 & piece;
     }
 
-    static int getRank(int square) {
+    inline static int getRank(int square) {
         return 7-(int) square / 8;
     }
 
-    static int getFile(int square) {
+    inline static int getFile(int square) {
         return square % 8;
     }
 

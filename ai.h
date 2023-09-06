@@ -6,7 +6,8 @@
 #define CHESSENGINE_AI_H
 #include "main.h"
 
-Move findBestMove(Board board);
+float minMax(Board* board, Move* thisMove, int depth, int ply, float alpha, float beta);
+Move* findBestMove(Board* board);
 
 
 #endif //CHESSENGINE_AI_H

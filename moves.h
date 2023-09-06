@@ -11,15 +11,15 @@
 class Move {
 
 public:
-    int from{};
-    int to{};
-    int movePiece{};
-    int toPiece{};
-    bool isWhiteToMove{};
-    bool isCapture{};
+    int from;
+    int to;
+    int movePiece;
+    int toPiece;
+    bool isWhiteToMove;
+    bool isCapture;
     bool promotion;
 
-    Move copy();
+    Move* copy();
 
     Move(int fromSquare, int toSquare, int movePiece, int toPiece);
 

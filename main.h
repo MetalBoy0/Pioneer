@@ -10,6 +10,7 @@
 #include <list>
 #include "legal.h"
 #include "moves.h"
+#include "main.h"
 using namespace std;
 
 int toBoardIndex(int x, int y);
@@ -29,17 +30,17 @@ public:
 
     void printBoard();
     // Simple function to convert a from square and to square to a move on the board
-    Move getMove(int from, int to) {
-        Move move = *new Move(from, to, squares[from], squares[to]);
+    Move* getMove(int from, int to) {
+        Move* move = new Move(from, to, squares[from], squares[to]);
         return move;
     }
-    void makeMove(Move move);
+    void makeMove(Move* move);
     void undoMove();
     void updatePieceLists();
     void updateBoard();
-    list<Move> generateLegalMoves();
+    list<Move*> generateLegalMoves();
 private:
-    Move pastMoves[100]; // Stores the past moves
+    Move* pastMoves[100]; // Stores the past moves
 };
 
 
