@@ -48,8 +48,9 @@ inline float quiessence(Board *board, int ply, float alpha, float beta) {
         if (x->isCapture) {
             board->makeMove(x);
             float score = -quiessence(board, ply + 1, -beta, -alpha);
-            board->undoMove();
+            board->undoMove(x);
             if (score >= beta) {
+                delete x;
                 return beta;
             }
             if (score > alpha) {
@@ -62,12 +63,12 @@ inline float quiessence(Board *board, int ply, float alpha, float beta) {
 }
 
 // Minimax search
-inline float minMax(Board *board, Move *thisMove, int depth, int ply, float alpha, float beta) {
+inline float minMax(Board *board, int depth, int ply, float alpha, float beta) {
 
     NODES++;
     if (depth == 0) {
 
-        float value = quiessence(board, 0, -beta, -alpha);
+        float value = eval(board);
 
         return value;
     }
@@ -76,12 +77,14 @@ inline float minMax(Board *board, Move *thisMove, int depth, int ply, float alph
     //sortMove(board, legalMoves);
     for (auto x: legalMoves) {
         board->makeMove(x);
-        float value = -minMax(board, x, depth - 1, ply + 1, -beta, -alpha);
+        float value = -minMax(board, depth - 1, ply + 1, -beta, -alpha);
 
-        board->undoMove();
+        board->undoMove(x);
         if (value >= beta) {
             CUTTOFFS++;
+            delete x;
             return value;
+
         }
 
         if (value > alpha) {
@@ -171,7 +174,7 @@ float eval(Board *board, Move *move) {
 
     board->makeMove(move);
     float value = eval(board);
-    board->undoMove();
+    board->undoMove(move);
     return value;
 }
 
@@ -189,9 +192,9 @@ Move *findBestMove(Board *board) {
         BESTVAL = 0;
         int perspective = ISWHITE ? 1 : -1;
         if (ISWHITE) {
-            BESTVAL = minMax(board, NULL_MOVE, DEPTH, 0, INT_MIN, INT_MAX);
+            BESTVAL = minMax(board, DEPTH, 0, INT_MIN, INT_MAX);
         } else {
-            BESTVAL = minMax(board, NULL_MOVE, DEPTH, 0, INT_MIN, INT_MAX);
+            BESTVAL = minMax(board, DEPTH, 0, INT_MIN, INT_MAX);
         }
         cout << "DEPTH: " << DEPTH << " Nodes Searched: " << NODES << " Nodes Pruned: " << CUTTOFFS << " Best Val: "
              << BESTVAL << endl;

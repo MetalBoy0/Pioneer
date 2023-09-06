@@ -6,6 +6,7 @@
 #include "ai.h"
 #include "microbench.h"
 
+
 // Simple function to convert x and y coordinates to an index on the board
 inline int toBoardIndex(int x, int y) {
 
@@ -13,6 +14,134 @@ inline int toBoardIndex(int x, int y) {
     x = 7 - x;
     return 63 - (y * 8 + x);
 }
+
+list<Move *> Board::generateLegalMoves() {
+
+    list<Move *> moves;
+    for (int square = 0; square < 64; square++) {
+        int piece = squares[square];
+
+        if (piece != Piece::None && Piece::getSide(piece) == (isWhiteMove ? Piece::White : Piece::Black)) {
+
+            if (Piece::getPieceType(piece) == Piece::Pawn) {
+                // find forward 3 squares
+                int forward = (Piece::getSide(piece) == Piece::White ? -1 : 1);
+                int possibleSquares[] = {8, 7, 9, 16};
+                for (int possibleSquare: possibleSquares) {
+                    int toSquare = square + possibleSquare * forward;
+                    if (toSquare >= 0 && toSquare < 64) {
+                        Move *move = getMove(square, toSquare);
+                        if (Rules::isLegal(move, this)) {
+                            moves.push_back(move);
+                        } else {
+                            delete move;
+                        }
+                    }
+                }
+                continue;
+            }
+            if (Piece::getPieceType(piece) == Piece::Knight) {
+                int possibleSquares[] = {6, 10, 15, 17, -6, -10, -15, -17};
+                for (int possibleSquare: possibleSquares) {
+                    int toSquare = square + possibleSquare;
+                    if (toSquare >= 0 && toSquare < 64) {
+                        Move *move = getMove(square, toSquare);
+                        if (Rules::isLegal(move, this)) {
+                            moves.push_back(move);
+                        } else {
+                            delete move;
+                        }
+
+                    }
+                }
+                continue;
+            }
+            if (Piece::getPieceType(piece) == Piece::Bishop) {
+                int possibleSquares[] = {7, 9, -7, -9};
+                for (int possibleSquare: possibleSquares) {
+                    int toSquare = square + possibleSquare;
+                    while (toSquare >= 0 && toSquare < 64) {
+                        Move *move = getMove(square, toSquare);
+                        if (Rules::isLegal(move, this)) {
+                            moves.push_back(move);
+                        } else {
+                            delete move;
+                        }
+                        if (Piece::getPieceType(squares[toSquare]) != Piece::None) {
+                            break;
+                        }
+                        toSquare += possibleSquare;
+                    }
+                }
+                continue;
+            }
+            if (Piece::getPieceType(piece) == Piece::Rook) {
+                int possibleSquares[] = {8, -8, 1, -1};
+                for (int possibleSquare: possibleSquares) {
+                    int toSquare = square + possibleSquare;
+                    while (toSquare >= 0 && toSquare < 64) {
+                        Move *move = getMove(square, toSquare);
+                        if (Rules::isLegal(move, this)) {
+                            moves.push_back(move);
+                        } else {
+                            delete move;
+                        }
+                        if (Piece::getPieceType(squares[toSquare]) != Piece::None) {
+                            break;
+                        }
+                        toSquare += possibleSquare;
+                    }
+                }
+                continue;
+            }
+            if (Piece::getPieceType(piece) == Piece::Queen) {
+                int possibleSquares[] = {7, 8, 9, 1, -7, -8, -9, -1};
+                for (int possibleSquare: possibleSquares) {
+                    int toSquare = square + possibleSquare;
+                    while (toSquare >= 0 && toSquare < 64) {
+                        Move *move = getMove(square, toSquare);
+                        if (Rules::isLegal(move, this)) {
+                            moves.push_back(move);
+                        } else {
+                            delete move;
+                        }
+                        if (Piece::getPieceType(squares[toSquare]) != Piece::None) {
+                            break;
+                        }
+                        toSquare += possibleSquare;
+                    }
+                }
+                continue;
+            }
+            if (Piece::getPieceType(piece) == Piece::King) {
+                int possibleSquares[] = {7, 8, 9, 1, -7, -8, -9, -1};
+                for (int possibleSquare: possibleSquares) {
+                    int toSquare = square + possibleSquare;
+                    if (toSquare >= 0 && toSquare < 64) {
+                        Move *move = getMove(square, toSquare);
+                        if (Rules::isLegal(move, this)) {
+                            moves.push_back(move);
+                        }
+                    }
+                }
+                continue;
+            }
+            for (int i = 0; i < 64; i++) {
+                Move *move = getMove(square, i);
+                if (Rules::isLegal(move, this)) {
+                    moves.push_back(move);
+                } else {
+                    delete move;
+                }
+            }
+
+
+        }
+
+    }
+    return moves;
+}
+
 
 // Updates lists such as bitboards and piece lists
 void Board::updatePieceLists() {
@@ -43,12 +172,11 @@ inline void Board::updateBoard() {
 }
 
 // Applies a move to the board
-inline void Board::makeMove(Move* move) {
+inline void Board::makeMove(Move *move) {
 
     // Add move to past moves list
 
-    pastMoves[pastMoveIndex] = move;
-    pastMoveIndex = pastMoveIndex + 1;
+
 
     // Preform move
 
@@ -83,15 +211,10 @@ void Board::printBoard() {
     }
 }
 
-inline void Board::undoMove() {
-    if (pastMoveIndex > 0) {
-        pastMoveIndex--;
-        Move* move = pastMoves[pastMoveIndex];
-        squares[move->from] = move->movePiece;
-        squares[move->to] = move->toPiece;
-        updateBoard();
-        delete move;
-    }
+void Board::undoMove(Move *move) {
+    squares[move->from] = move->movePiece;
+    squares[move->to] = move->toPiece;
+    updateBoard();
 }
 
 // Constructor for the board class
@@ -99,9 +222,7 @@ Board::Board() {
 
     isWhiteMove = false;
     // Setup past moves list
-    for (int i = 0; i < 100; i++) {
-        pastMoves[i] = new Move();
-    }
+
 
     // Setup squares list
     string fenpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -133,7 +254,9 @@ Board::Board() {
 int main() {
 
     Board board = Board();
-    const list<Move*> list = board.generateLegalMoves();
+    int pastIndex = 0;
+    Move *pastMoves[100];
+    const list<Move *> list = board.generateLegalMoves();
     cout << list.size() << endl;
     for (auto x: list) {
         char x1 = Piece::getFile(x->from) + 'a';
@@ -143,11 +266,8 @@ int main() {
         cout << x1 << y1 << x2 << y2 << endl;
     }
 
-    double time = moodycamel::microbench([&]() { board.generateLegalMoves(); }, 900, 1);
-    cout << time << endl;
-
-    time = moodycamel::microbench([&]() { board.getMove(0,1); }, 100, 1);
-    cout << time << endl;
+    //double time = moodycamel::microbench([&]() { board.generateLegalMoves(); }, 900, 1);
+    //cout << time << endl;
     while (true) {
         // Main input loop
         string input;
@@ -169,14 +289,20 @@ int main() {
             bool legal = Rules::isLegal(move, &board);
             if (legal) {
                 board.makeMove(move);
+                pastIndex++;
+                pastMoves[pastIndex] = move;
+
             }
 
         } else if (input == "undomove") {
-            board.undoMove();
+            if (pastIndex > 0) {
+                board.undoMove(pastMoves[pastIndex]);
+                pastIndex--;
+            }
         } else if (input == "exit" || input == "quit") {
             break;
         } else if (input == "go") {
-            Move* bestMove = findBestMove(&board);
+            Move *bestMove = findBestMove(&board);
             char x1 = Piece::getFile(bestMove->from) + 'a';
             char y1 = Piece::getRank(bestMove->from) + '1';
             char x2 = Piece::getFile(bestMove->to) + 'a';

@@ -18,14 +18,15 @@ bool Rules::checkLegal(Move* move, Board* board) {
     for (int i = 0; i < 64; i++) {
         int square = board->squares[i];
         if (Piece::getSide(square) != Piece::getSide(move->movePiece)) {
-            auto checkMove = board->getMove(i, kingSquare);
+            Move* checkMove = board->getMove(i, kingSquare);
             if (isPsuedoLegal(checkMove, board)) {
 
                 return false;
             }
+            delete checkMove;
         }
     }
-    board->undoMove();
+    board->undoMove(move);
     return true;
 
 
@@ -93,7 +94,7 @@ bool Rules::knightLegal(Move* move, Board* board) {
     for (int possibleMove: possibleMoves) {
         int delta = move->to - move->from;
         if (delta == possibleMove &&                   // Make sure that the knight isn't wrapping around the board
-            abs(Piece::getFile(move->from) - Piece::getFile(move->to)) < 2) {
+            abs(Piece::getFile(move->from) - Piece::getFile(move->to)) < 3) {
             return true;
         }
     }

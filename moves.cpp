@@ -19,7 +19,7 @@ Move::Move(int fromSquare, int toSquare, int movePiece, int toPiece) {
     }
 }
 
-// Constror for empty move
+// Constructor for empty move
 Move::Move() {
     // Initialize member variables with default values or leave them uninitialized
     from = 0;
