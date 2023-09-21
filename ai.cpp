@@ -62,7 +62,7 @@ inline float quiessence(Board *board, int ply, float alpha, float beta) {
     return alpha;
 }
 
-// Minimax search
+// Minimax search with alpha beta pruning
 inline float minMax(Board *board, int depth, int ply, float alpha, float beta) {
 
     NODES++;
