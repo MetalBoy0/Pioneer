@@ -3,23 +3,36 @@
 
 enum Direction
 {
-    NORTH = 8,
-    SOUTH = -8,
-    EAST = 1,
-    WEST = -1,
-    NORTH_EAST = 9,
-    NORTH_WEST = 7,
-    SOUTH_EAST = -7,
-    SOUTH_WEST = -9
+    NULLDIR = 0,
+    N = 8,
+    S = -8,
+    E = 1,
+    W = -1,
+    NE = 9,
+    NW = 7,
+    SE = -7,
+    SW = -9,
+    NN = 16, // For pawns
+    SS = -16,
+    NNE = 17, // For knights
+    NEE = 10,
+    SEE = -6,
+    SSE = -15,
+    SSW = -17,
+    SWW = -10,
+    NWW = 6,
+    NNW = 15
 };
-
-Direction directions[64][64];
-
-Direction getDirectionBetween(int from, int to)
+extern Direction directions[64][64];
+extern void initDirections();
+namespace
 {
-    return directions[from][to];
+
+    Direction getDirectionBetween(int from, int to)
+    {
+        return directions[from][to];
+    }
+
 }
-
-
 
 #endif

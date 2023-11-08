@@ -65,5 +65,13 @@ int main()
         {
             parseDisplay(parser);
         }
+        else if (input == "makemove")
+        {
+            parseMakeMove(parser);
+        }
+        else if (input == "undomove")
+        {
+            parseUndoMove(parser);
+        }
     }
 }

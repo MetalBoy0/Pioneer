@@ -1,22 +1,11 @@
-#ifndef MOVE_H
-#define MOVE_H
-
-#include <cstdint>
-#include "piece.h"
-
-// Moves will be a 16 bit unsigned integer
-typedef uint32_t Move;
-
-// Move format:
-// 0000 0000 000000 000000
-// ECCP Prom   To    From
-// ECCP: En Passant, Castle, Capture, Promotion
+#include "move.h"
+#include "../Representation/board.h"
 
 
 
 constexpr bool isCapture(Move move)
 {
-    return (move & 0x1000) != 0;
+    return (move & 0x40000) != 0;
 }
 
 constexpr bool isCastle(Move move)
@@ -53,5 +42,3 @@ constexpr bool isEnPassantCapture(Move move)
 {
     return isCapture(move) && isEnPassant(move);
 }
-
-#endif
