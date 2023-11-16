@@ -1,4 +1,5 @@
 #include "board.h"
+#include "../MoveGeneration/movegen.h"
 #include <cassert>
 // Resets bitboards based on the board array
 void appendBB(indexList *list, Bitboard BB)
@@ -354,6 +355,7 @@ Board::Board()
     sideToMove = Pieces::White;
     otherSide = Pieces::Black;
     isWhite = Pieces::isWhite(sideToMove);
+    PsuedoLegalMoveGenerator psuedoGen(*this);
     loadFEN(startFen);
     initDirections();
     assert(~pieceBB[0] == allPiecesBB);

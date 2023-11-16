@@ -7,7 +7,7 @@ typedef unsigned long long Bitboard;
 // Some helpful bitboard masks
 
 const Bitboard emptyBB = 0ull;
-
+const Bitboard fullBB = ~emptyBB;
 // File masks
 extern const Bitboard fileMasks[8];
 

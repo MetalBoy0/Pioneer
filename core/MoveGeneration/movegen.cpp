@@ -1,5 +1,5 @@
 #include "movegen.h"
-
+#include "../Representation/piece.h"
 int captures = 0;
 int checks = 0;
 
@@ -13,447 +13,210 @@ void appendMove(MoveList *movelist, Move move)
     movelist->moves[movelist->count++] = move;
 }
 
-MoveList *generateMoves(Board *board, MoveList *moveList)
+Bitboard generateSlidingMovesBB(Board *b, int from, Direction moves[], bool isQueen)
 {
-    moveList->count = 0;
-
-    generateLegalNonCaptures(board, moveList);
-    generateLegalCaptures(board, moveList);
-    return moveList;
-}
-
-// Generate all legal castles for the current position
-// TODO
-MoveList *generateLegalCastles(Board *board, MoveList *moveList)
-{
-    return moveList;
-}
-
-// Generate all legal captures for the current position
-MoveList *generateLegalCaptures(Board *board, MoveList *moveList)
-{
-    generateLegalPawnCaptures(board, moveList);
-    generateLegalKnightCaptures(board, moveList);
-    generateLegalBishopCaptures(board, moveList);
-    generateLegalRookCaptures(board, moveList);
-    generateLegalQueenCaptures(board, moveList);
-    // generateLegalKingCaptures(board, moveList);
-    captures += moveList->count;
-    return moveList;
-}
-
-// Generate all legal pawn captures for the current position
-MoveList *generateLegalPawnCaptures(Board *board, MoveList *MoveList)
-{
-    // The Idea is to take the pawn bitboard, shift it diagonally, and then AND it with the empty squares
-    Bitboard bb = board->pieceBB[Pieces::Pawn] & board->colorBB[board->sideToMove];
-    if (board->sideToMove == Pieces::White)
+    Bitboard bb = 0LL;
+    int t = 4 * (isQueen + 1);
+    for (int i = 0; i < t; i++)
     {
-        bb = shift<SE>(&bb);
-    }
-    else
-    {
-        bb = shift<NE>(&bb);
-    }
-    bb &= board->colorBB[board->otherSide];
-
-    // Collect moves from the bitboard
-    Direction dir = board->sideToMove == Pieces::White ? SE : NE;
-    while (bb)
-    {
-        int to = popLSB(&bb);
-        int from = to - dir;
-        if (distIsMoreThanOne(from, to))
+        int offset = moves[i];
+        int to = from + offset;
+        while (indexToRank(to) >= 0 && indexToRank(to) <= 7 && indexToFile(to) >= 0 && indexToFile(to) <= 7)
         {
-            continue;
-        }
-        appendMove(MoveList, board->getMove(from, to));
-    }
-
-    bb = board->pieceBB[Pieces::Pawn] & board->colorBB[board->sideToMove];
-    if (board->sideToMove == Pieces::White)
-    {
-        bb = shift<SW>(&bb);
-    }
-    else
-    {
-        bb = shift<NW>(&bb);
-    }
-    bb &= board->colorBB[board->otherSide];
-
-    // Collect moves from the bitboard
-    dir = board->sideToMove == Pieces::White ? SW : NW;
-    while (bb)
-    {
-        int to = popLSB(&bb);
-        int from = to - dir;
-        if (distIsMoreThanOne(from, to))
-        {
-            continue;
-        }
-        appendMove(MoveList, board->getMove(from, to));
-    }
-    return MoveList;
-}
-
-// Generate all legal knight captures for the current position
-MoveList *generateLegalKnightCaptures(Board *board, MoveList *MoveList)
-{
-    // Similar to the knight non captures
-
-    Bitboard bb = board->pieceBB[Pieces::Knight] & board->colorBB[board->sideToMove];
-    Direction dir[] = {NNE, NEE, SEE, SSE, SSW, SWW, NWW, NNW};
-    for (int i = 0; i < 8; i++)
-    {
-        Bitboard temp = shift(&bb, dir[i], 1);
-        temp &= board->colorBB[board->otherSide];
-        while (temp)
-        {
-            int to = popLSB(&temp);
-            int from = to - dir[i];
-            if (abs(indexToRank(from) - indexToRank(to)) <= 2 && abs(indexToFile(from) - indexToFile(to)) <= 2 && isValidIndex(to))
+            if (b->colorBB[b->sideToMove] & (1 << to))
             {
-                appendMove(MoveList, board->getMove(from, to));
+                break;
             }
-        }
-    }
-
-    return MoveList;
-}
-
-// Generate all legal bishop captures for the current position
-MoveList *generateLegalBishopCaptures(Board *board, MoveList *MoveList)
-{
-    // Get all bishops
-    Bitboard bb = board->pieceBB[Pieces::Bishop] & board->colorBB[board->sideToMove];
-    Direction dir[] = {NE, SE, SW, NW};
-    while (bb)
-    {
-        int bishop = popLSB(&bb);
-        int from = bishop;
-        for (int i = 0; i < 4; i++)
-        {
-            bishop = from;
-            while (true)
+            if (b->colorBB[b->otherSide] & (1 << to))
             {
-                int to = bishop + dir[i];
-                if (!isValidIndex(to) || distIsMoreThanOne(bishop, to))
-                {
-                    break;
-                }
-                if (getBit(&board->colorBB[board->sideToMove], to))
-                {
-                    break;
-                }
-                if (getBit(&board->colorBB[board->otherSide], to))
-                {
-                    // Add move
-                    Move move = board->getMove(from, to);
-                    appendMove(MoveList, move);
-                }
-                bishop = to;
+                setBit(&bb, to);
+                break;
             }
+            setBit(&bb, to);
+            to += offset;
         }
+        return bb;
     }
-
-    return MoveList;
 }
 
-// Generate all legal rook captures for the current position
-MoveList *generateLegalRookCaptures(Board *board, MoveList *MoveList)
+// Bitboard of all pawn capturesS
+Bitboard pawnCaptureBitboards[Pieces::Black][64];
+
+// Bitboard of all pawn moves
+// Does not include double pawn moves
+Bitboard pawnMoveBitboards[Pieces::Black][64];
+
+// Bitboard of all knight moves
+Bitboard knightMoveBitboards[64];
+
+// Bitboard of all king moves
+// Does not check for wrapping around the board
+Bitboard kingMoveBitboards[64];
+
+int bishopMoveOffsets[] = {7, 9, -7, -9};
+int rookMoveOffsets[] = {8, -8, 1, -1};
+int queenMoveOffsets[] = {7, 9, -7, -9, 8, -8, 1, -1};
+
+// Setup move bitboards
+void init()
 {
-    // Get all rooks
-    Bitboard bb = board->pieceBB[Pieces::Rook] & board->colorBB[board->sideToMove];
-    Direction dir[] = {N, E, S, W};
-    while (bb)
+    for (int i = 0; i < 64; i++)
     {
-        int rook = popLSB(&bb);
-        int from = rook;
-        for (int i = 0; i < 4; i++)
+        if (indexToRank(i) < 7 && indexToRank(i) > 0)
         {
-            rook = from;
-            while (true)
+            if (indexToFile(i) > 0)
             {
-                int to = rook + dir[i];
-                if (!isValidIndex(to) || distIsMoreThanOne(rook, to))
-                {
-                    break;
-                }
-                if (getBit(&board->colorBB[board->sideToMove], to))
-                {
-                    break;
-                }
-                if (getBit(&board->colorBB[board->otherSide], to))
-                {
-                    // Add move
-                    Move move = board->getMove(from, to);
-                    appendMove(MoveList, move);
-                }
-                rook = to;
+                pawnCaptureBitboards[Pieces::Black][i] |= (1 << (i + 7));
+                pawnCaptureBitboards[Pieces::White][i] |= (1 << (i - 9));
             }
-        }
-    }
-    return MoveList;
-}
-
-// Generate all legal queen captures for the current position
-MoveList *generateLegalQueenCaptures(Board *board, MoveList *MoveList)
-{
-    // Get all queens
-    Bitboard bb = board->pieceBB[Pieces::Queen] & board->colorBB[board->sideToMove];
-    Direction dir[] = {N, E, S, W, NE, SE, SW, NW};
-    while (bb)
-    {
-        int queen = popLSB(&bb);
-        int from = queen;
-        for (int i = 0; i < 8; i++)
-        {
-            queen = from;
-
-            while (true)
+            if (indexToFile(i) < 7)
             {
-                int to = queen + dir[i];
-                if (!isValidIndex(to) || distIsMoreThanOne(queen, to))
-                {
-                    break;
-                }
-                if (getBit(&board->colorBB[board->sideToMove], to))
-                {
-                    break;
-                }
-                if (getBit(&board->colorBB[board->otherSide], to))
-                {
-                    // Add move
-                    Move move = board->getMove(from, to);
-                    appendMove(MoveList, move);
-                }
-                queen = to;
+                pawnCaptureBitboards[Pieces::Black][i] |= (1 << (i + 9));
+                pawnCaptureBitboards[Pieces::White][i] |= (1 << (i - 7));
             }
-        }
-    }
-    return MoveList;
-}
-
-// Generate all legal king captures for the current position
-MoveList *generateLegalKingCaptures(Board *board, MoveList *MoveList)
-{
-    return MoveList;
-}
-
-// Generate all legal non captures for the current position
-MoveList *generateLegalNonCaptures(Board *board, MoveList *moveList)
-{
-    generateLegalPawnNonCaptures(board, moveList);
-    generateLegalKnightNonCaptures(board, moveList);
-    generateLegalBishopNonCaptures(board, moveList);
-    generateLegalRookNonCaptures(board, moveList);
-    generateLegalQueenNonCaptures(board, moveList);
-    generateLegalKingNonCaptures(board, moveList);
-    return moveList;
-}
-
-// Generate all legal pawn non captures for the current position
-MoveList *generateLegalPawnNonCaptures(Board *board, MoveList *MoveList)
-{
-    // The Idea is to take the pawn bitboard, shift it up one, and then AND it with the empty squares
-    // This will give us all the squares that the pawn can move to
-
-    Bitboard bb = board->pieceBB[Pieces::Pawn] & board->colorBB[board->sideToMove];
-    if (board->sideToMove == Pieces::White)
-    {
-        bb = shift<S>(&bb);
-    }
-    else
-    {
-        bb = shift<N>(&bb);
-    }
-    bb &= board->pieceBB[Pieces::Empty];
-
-    // Collect moves from the bitboard
-    Direction dir = board->sideToMove == Pieces::White ? S : N;
-    while (bb)
-    {
-        int to = popLSB(&bb);
-        int from = to - dir;
-        appendMove(MoveList, board->getMove(from, to));
-    }
-    // Pawn Jumps
-    // Works in a similar way, but we shift the pawn bitboard up one, then AND it with the empty squares
-    // Then shift the result up one again, and AND it with the empty squares
-    bb = board->pieceBB[Pieces::Pawn] & board->colorBB[board->sideToMove];
-    bb &= rankMasks[board->sideToMove == Pieces::White ? 6 : 1];
-    if (bb)
-    {
-        if (board->sideToMove == Pieces::White)
-        {
-            bb = shift<S>(&bb);
+            pawnMoveBitboards[Pieces::Black][i] = (1 << (i + 8));
+            pawnMoveBitboards[Pieces::White][i] = (1 << (i - 8));
         }
         else
         {
-            bb = shift<N>(&bb);
+            pawnCaptureBitboards[Pieces::Black][i] = 0;
+            pawnCaptureBitboards[Pieces::White][i] = 0;
         }
-        bb &= board->pieceBB[Pieces::Empty];
-        if (bb)
+        int knightMoves[] = {17, 15, 10, 6, -17, -15, -10, -6};
+        for (int j = 0; j < 8; j++)
         {
-            if (board->sideToMove == Pieces::White)
-            {
-                bb = shift<S>(&bb);
-            }
-            else
-            {
-                bb = shift<N>(&bb);
-            }
-            bb &= board->pieceBB[Pieces::Empty];
-            while (bb)
-            {
-                int to = popLSB(&bb);
-                int from = to - dir * 2;
-                appendMove(MoveList, board->getMove(from, to));
-            }
-        }
-    }
-    return MoveList;
-}
-
-// Generate all legal knight non captures for the current position
-MoveList *generateLegalKnightNonCaptures(Board *board, MoveList *MoveList)
-{
-    // Similar to the pawns
-    Bitboard bb = board->pieceBB[Pieces::Knight] & board->colorBB[board->sideToMove];
-    Direction dir[] = {NNE, NEE, SEE, SSE, SSW, SWW, NWW, NNW};
-    for (int i = 0; i < 8; i++)
-    {
-        Bitboard temp = shift(&bb, dir[i], 1);
-        temp &= board->pieceBB[Pieces::Empty];
-        while (temp)
-        {
-            int to = popLSB(&temp);
-            int from = to - dir[i];
-            if (abs(indexToRank(from) - indexToRank(to)) <= 2 && abs(indexToFile(from) - indexToFile(to)) <= 2 && isValidIndex(to))
-            {
-                appendMove(MoveList, board->getMove(from, to));
-            }
-        }
-    }
-    return MoveList;
-}
-
-// Generate all legal bishop non captures for the current position
-MoveList *generateLegalBishopNonCaptures(Board *board, MoveList *MoveList)
-{
-    // Get all bishops
-    Bitboard bb = board->pieceBB[Pieces::Bishop] & board->colorBB[board->sideToMove];
-    Direction dir[] = {NE, SE, SW, NW};
-    while (bb)
-    {
-        int bishop = popLSB(&bb);
-        int from = bishop;
-        for (int i = 0; i < 4; i++)
-        {
-            bishop = from;
-            while (true)
-            {
-                int to = bishop + dir[i];
-                if (!isValidIndex(to) || getBit(&board->allPiecesBB, to) || distIsMoreThanOne(bishop, to))
-                {
-                    break;
-                }
-                // Add move
-                Move move = board->getMove(from, to);
-                appendMove(MoveList, move);
-
-                bishop = to;
-            }
-        }
-    }
-
-    return MoveList;
-}
-
-// Generate all legal rook non captures for the current position
-MoveList *generateLegalRookNonCaptures(Board *board, MoveList *MoveList)
-{
-    // Get all rooks
-    Bitboard bb = board->pieceBB[Pieces::Rook] & board->colorBB[board->sideToMove];
-    Direction dir[] = {N, E, S, W};
-    while (bb)
-    {
-        int rook = popLSB(&bb);
-        int from = rook;
-        for (int i = 0; i < 4; i++)
-        {
-            rook = from;
-            while (true)
-            {
-                int to = rook + dir[i];
-                if (!isValidIndex(to) || getBit(&board->allPiecesBB, to) || distIsMoreThanOne(rook, to))
-                {
-                    break;
-                }
-                // Add move
-                Move move = board->getMove(from, to);
-                appendMove(MoveList, move);
-
-                rook = to;
-            }
-        }
-    }
-    return MoveList;
-}
-
-// Generate all legal queen non captures for the current position
-MoveList *generateLegalQueenNonCaptures(Board *board, MoveList *MoveList)
-{
-    // Get all queens
-    Bitboard bb = board->pieceBB[Pieces::Queen] & board->colorBB[board->sideToMove];
-    Direction dir[] = {N, E, S, W, NE, SE, SW, NW};
-    while (bb)
-    {
-        int queen = popLSB(&bb);
-        int from = queen;
-        for (int i = 0; i < 8; i++)
-        {
-            queen = from;
-
-            while (true)
-            {
-                int to = queen + dir[i];
-                if (!isValidIndex(to) || getBit(&board->allPiecesBB, to) || distIsMoreThanOne(queen, to))
-                {
-                    break;
-                }
-                // Add move
-                Move move = board->getMove(from, to);
-                appendMove(MoveList, move);
-
-                queen = to;
-            }
-        }
-    }
-    return MoveList;
-}
-
-// Generate all legal king non captures for the current position
-MoveList *generateLegalKingNonCaptures(Board *board, MoveList *MoveList)
-{
-    // Get the king
-    Bitboard bb = board->pieceBB[Pieces::King] & board->colorBB[board->sideToMove];
-    Direction dir[] = {N, E, S, W, NE, SE, SW, NW};
-    while (bb)
-    {
-        int king = popLSB(&bb);
-        int from = king;
-        for (int i = 0; i < 8; i++)
-        {
-            int to = king + dir[i];
-            if (!isValidIndex(to) || getBit(&board->allPiecesBB, to))
+            if (abs(indexToFile(i + knightMoves[i]) - indexToFile(i)) > 2)
             {
                 continue;
             }
-            // Add move
-            Move move = board->getMove(from, to);
-            appendMove(MoveList, move);
+            knightMoveBitboards[i] |= (1 << (i + knightMoves[i]));
+        }
+
+        kingMoveBitboards[i] = (1 << (i + 9)) | (1 << (i + 8)) | (1 << (i + 7)) | (1 << (i + 1)) |
+                               (1 << (i - 1)) | (1 << (i - 7)) | (1 << (i - 8)) | (1 << (i - 9));
+    }
+}
+
+void generateMoves(Board *board, MoveList *moveList, bool capturesOnly)
+{
+    moveList->count = 0;
+    generateLegalNonCaptures(board, moveList);
+}
+
+MoveList *generateLegalCaptures(Board *board, MoveList *moves)
+{
+    // Pawns
+    Bitboard pawns = board->colorBB[board->sideToMove] && board->pieceBB[Pieces::Pawn];
+    Bitboard enPassant = 0;
+    if (board->enPassantSquare != -1)
+    {
+        enPassant = (1 << board->enPassantSquare);
+    }
+    while (pawns)
+    {
+        int pawn = popLSB(&pawns);
+        Bitboard captures = pawnCaptureBitboards[board->sideToMove][pawn] & emptyBB;
+        while (captures)
+        {
+            int capture = popLSB(&captures);
+            if (indexToRank(capture) == 0 || indexToRank(capture) == 7)
+            {
+                appendMove(moves, board->getMove(pawn, capture, Pieces::Queen));
+                appendMove(moves, board->getMove(pawn, capture, Pieces::Rook));
+                appendMove(moves, board->getMove(pawn, capture, Pieces::Bishop));
+                appendMove(moves, board->getMove(pawn, capture, Pieces::Knight));
+            }
+            else
+            {
+                appendMove(moves, board->getMove(pawn, capture));
+            }
+            if (capture == enPassant)
+            {
+                appendMove(&moves, board->getMove(pawn, capture));
+            }
         }
     }
-    return MoveList;
+
+    // Knights
+    Bitboard knights = board->colorBB[board->sideToMove] && board->pieceBB[Pieces::Knight];
+    Bitboard enemyPieces = board->colorBB[board->otherSide];
+    while (knights)
+    {
+        int knight = popLSB(&knights);
+        Bitboard captures = knightMoveBitboards[knight] & enemyPieces;
+        while (captures)
+        {
+            int capture = popLSB(&captures);
+            appendMove(moves, board->getMove(knight, capture));
+        }
+    }
+
+    generateLegalKingCaptures();
+    return &moves;
+}
+
+void generateLegalSlidingMoves(Board *board, MoveList *moves, bool capturesOnly)
+{
+    Direction offsets[2][4] = {{NW, NE, SW, SE}, {N, W, E, S}, {NULLDIR, NULLDIR, NULLDIR, NULLDIR}}; // Bishop, Rook
+    Piece pieces[3] = {Pieces::Bishop, Pieces::Rook, Pieces::Queen};
+
+    for (int i = 0; i < 3; i++)
+    {
+        Bitboard pieces = board->colorBB[board->sideToMove] && board->pieceBB[Pieces::Bishop];
+        Bitboard enemyPieces = board->colorBB[board->otherSide];
+        while (pieces)
+        {
+            int bishop = popLSB(&pieces);
+
+            Bitboard bb = generateSlidingMovesBB(&board, bishop, offsets[i], false); // TODO: and to piece BB?
+            if (capturesOnly)
+            {
+                bb &= enemyPieces;
+            }
+            while (bb)
+            {
+                int move = popLSB(&bb);
+                appendMove(moves, board->getMove(bishop, move));
+            }
+        }
+    }
+}
+
+void *generateLegalQueenMoves(bool capturesOnly)
+{
+    Bitboard queens = board->colorBB[board->sideToMove] && board->pieceBB[Pieces::Queen];
+    Bitboard enemyPieces = board->colorBB[board->otherSide];
+    while (queens)
+    {
+        int queen = popLSB(&queens);
+        Bitboard bb = generateSlidingMovesBB(&board, queen, queenMoveOffsets, false) & emptyBB;
+        if (capturesOnly)
+        {
+            bb &= enemyPieces;
+        }
+        while (bb)
+        {
+            int move = popLSB(&bb);
+            appendMove(&moves, board->getMove(queen, move));
+        }
+    }
+}
+
+MoveList *generateLegalNonCaptures()
+{
+    generateLegalPawnNonCaptures();
+    generateLegalKnightNonCaptures();
+    generateLegalBishopMoves(false);
+    generateLegalRookMoves(false);
+    generateLegalQueenMoves(false);
+    generateLegalKingNonCaptures();
+    return &moves;
+}
+
+MoveList *generateMoves()
+{
+    moves.count = 0;
+    generateLegalCaptures();
+    generateLegalNonCaptures();
+    return &moves;
 }

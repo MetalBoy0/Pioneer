@@ -4,7 +4,7 @@
 #include <iostream>
 #include "move.h"
 #include "bitboard.h"
-
+#include "../MoveGeneration/movegen.h"
 using namespace std;
 
 struct indexList
@@ -24,7 +24,9 @@ public:
     bool isWhite;        // True if white, false if black
     int enPassantSquare; // -1 if no en passant square, otherwise the square
     int ply;             // number of moves since the start of the game
-    indexList checks;          // Number of checks
+    indexList checks;    // Number of checks
+    MoveList legalMoves;
+    PsuedoLegalMoveGenerator psuedoGen;
 
     // Castling rights
     bool whiteCanCastleKingSide;
@@ -87,6 +89,5 @@ namespace
     }
 
 }
-
 
 #endif

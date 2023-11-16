@@ -35,7 +35,7 @@ int startPerft(Board board, unsigned int depth)
 
     MoveList moveList;
     moveList.count = 0;
-    generateMoves(&board, &moveList);
+    board.
     int newNodes = 0;
     for (int i = 0; i < moveList.count; i++)
     {
