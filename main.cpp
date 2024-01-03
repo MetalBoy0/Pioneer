@@ -35,43 +35,52 @@ int main()
         else if (input == "uci")
         {
             parseUCI(parser);
+            cout << "\n-\n";
         }
 
         else if (input == "isready")
         {
             parseIsReady(parser);
+            cout << "\n-\n";
         }
 
         else if (input == "ucinewgame")
         {
             parseNewGame(parser);
+            cout << "\n-\n";
         }
 
         else if (input == "position")
         {
             parsePosition(parser);
+            cout << "\n-\n";
         }
 
         else if (input == "go")
         {
             parseGo(parser);
+            cout << "\n-\n";
         }
 
         else if (input == "debug")
         {
             parseDebug(parser);
+            cout << "\n-\n";
         }
         else if (input == "d")
         {
             parseDisplay(parser);
+            cout << "\n-\n";
         }
         else if (input == "makemove")
         {
             parseMakeMove(parser);
+            cout << "\n-\n";
         }
         else if (input == "undomove")
         {
             parseUndoMove(parser);
+            cout << "\n-\n";
         }
     }
 }

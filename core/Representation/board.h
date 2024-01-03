@@ -4,7 +4,6 @@
 #include <iostream>
 #include "move.h"
 #include "bitboard.h"
-#include "../MoveGeneration/movegen.h"
 using namespace std;
 
 struct indexList
@@ -25,8 +24,6 @@ public:
     int enPassantSquare; // -1 if no en passant square, otherwise the square
     int ply;             // number of moves since the start of the game
     indexList checks;    // Number of checks
-    MoveList legalMoves;
-    PsuedoLegalMoveGenerator psuedoGen;
 
     // Castling rights
     bool whiteCanCastleKingSide;
@@ -39,8 +36,7 @@ public:
     void undoMove();
     void setMove(Move move);
     void revertSetMove(Move move);
-    Move getMove(int from, int to);
-    Move getMove(int from, int to, Piece promotion);
+    Move getMove(int from, int to, Piece piece = Pieces::Empty, bool isCastle = false);
 
     // Bitboards
     Bitboard colorBB[9]; // Pieces by color 0 == White, 8 == None

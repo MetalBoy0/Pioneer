@@ -10,10 +10,8 @@ struct MoveList
     int count;
 };
 
-extern void appendMove(MoveList *moveList, Move move);
 
-extern void generateMoves(Board *board, MoveList *moveList);
-extern void generateCaptures(Board *board, MoveList *moveList);
-extern void generateNonCaptures(Board *board, MoveList *moveList);
+extern void appendMove(MoveList *moveList, Move move);
+extern void generateMoves(Board *board, MoveList *moveList, bool onlyCaptures = false);
 
 #endif

@@ -10,7 +10,7 @@ constexpr bool isCapture(Move move)
 
 constexpr bool isCastle(Move move)
 {
-    return (move & 0x2000) != 0;
+    return ((move >> 19) & 1) != 0;
 }
 
 constexpr bool isEnPassant(Move move)

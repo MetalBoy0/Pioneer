@@ -8,16 +8,28 @@ typedef unsigned long long Bitboard;
 
 const Bitboard emptyBB = 0ull;
 const Bitboard fullBB = ~emptyBB;
+
+//castling masks
+extern const Bitboard shortCastle[9];
+extern const Bitboard longCastle[9];
+
 // File masks
 extern const Bitboard fileMasks[8];
 
 // Rank masks
 extern const Bitboard rankMasks[8];
 
+// Knight moves
+extern Bitboard knightMoves[64];
+
+// King moves
+extern Bitboard kingMoves[64];
+
 extern void printBitboard(Bitboard *bb);
 extern Bitboard bitboardRay(Direction dir, int square);
 extern Bitboard bitboardRay(int from, int to);
 extern Bitboard sendRay(Bitboard *bb, Direction dir, int square);
+extern void initBBs();
 namespace
 {
 

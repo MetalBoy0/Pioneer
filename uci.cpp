@@ -24,23 +24,50 @@ void setup()
 
 Move stringToMove(string moveString, Board board)
 {
-    if (moveString.length() < 4)
+    bool castle = false;
+    bool promote = Pieces::Empty;
+    int to;
+    int from;
+    if (moveString == "O-O")
+    {
+        from = 60;
+        to = 62;
+        castle = true;
+    }
+    else if (moveString.length() < 4)
     {
         return 0;
     }
-    int from = ((moveString[0] - 'a') + (8 * (7 - (moveString[1] - '1'))));
-    int to = ((moveString[2] - 'a') + (8 * (7 - (moveString[3] - '1'))));
+    else
+    {
+        from = ((moveString[0] - 'a') + (8 * (7 - (moveString[1] - '1'))));
+        to = ((moveString[2] - 'a') + (8 * (7 - (moveString[3] - '1'))));
+    }
 
-    return board.getMove(from, to);
+    return board.getMove(from, to, promote, castle);
 }
 
 string moveToString(Move move)
 {
     string moveString = "";
-    moveString += (char)(indexToFile(move & 0x3F) + 'a');
-    moveString += (char)(indexToRank(move & 0x3F) + '1');
-    moveString += (char)(indexToFile(move >> 6 & 0x3F) + 'a');
-    moveString += (char)(indexToRank(move >> 6 & 0x3F) + '1');
+    if (isCastle(move))
+    {
+        if (indexToFile(move >> 6 & 0x3F) < 4)
+        {
+            return "O-O-O";
+        }
+        else
+        {
+            return "O-O";
+        }
+    }
+    else
+    {
+        moveString += (char)(indexToFile(move & 0x3F) + 'a');
+        moveString += (char)(indexToRank(move & 0x3F) + '1');
+        moveString += (char)(indexToFile(move >> 6 & 0x3F) + 'a');
+        moveString += (char)(indexToRank(move >> 6 & 0x3F) + '1');
+    }
     return moveString;
 }
 
@@ -68,6 +95,12 @@ void parsePosition(istringstream &parser)
 
     if (input == "startpos")
     {
+        board.loadFEN(startFen);
+    }
+    else if (input == "fen")
+    {
+        parser >> input;
+        board.loadFEN(input);
     }
 }
 
@@ -136,9 +169,9 @@ void parseGo(istringstream &parser)
         auto start = chrono::high_resolution_clock::now();
         int perft = startPerft(board, depthValue);
         auto stop = chrono::high_resolution_clock::now();
-        cout << "\nPerft search to depth: " << depthValue << "\n"
+        cout << "Perft search to depth: " << depthValue << "\n"
              << "Took " << chrono::duration_cast<chrono::milliseconds>(stop - start).count() << "ms\n";
-        cout << "Nodes: " << perft << "\n";
+        cout << "Nodes: " << perft;
     }
     else
     {

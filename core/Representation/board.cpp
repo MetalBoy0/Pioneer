@@ -2,6 +2,14 @@
 #include "../MoveGeneration/movegen.h"
 #include <cassert>
 // Resets bitboards based on the board array
+
+int invertX(int i)
+{
+    int x = 7 - i % 8;
+    int y = i / 8;
+    return x + y * 8;
+}
+
 void appendBB(indexList *list, Bitboard BB)
 {
     int index = 0;
@@ -83,29 +91,29 @@ void Board::setMove(Move move)
     // Update bitboards
     // Remove captured piece
     // it doesn't matter if we remove an empty square because it will be updated anyway
-    toggleBit(&pieceBB[Pieces::getType(capturedPiece)], to);
+    clearBit(&pieceBB[Pieces::getType(capturedPiece)], to);
     // It does matter if we remove a piece from the colorBB without checking if it is a capture
     if (capturedPiece != Pieces::Empty)
     {
-        toggleBit(&colorBB[Pieces::getColor(capturedPiece)], getTo(move));
+        clearBit(&colorBB[Pieces::getColor(capturedPiece)], getTo(move));
     }
     // Add piece to new square
-    toggleBit(&pieceBB[Pieces::getType(movePiece)], to);
-    toggleBit(&colorBB[Pieces::getColor(movePiece)], to);
+    setBit(&pieceBB[Pieces::getType(movePiece)], to);
+    setBit(&colorBB[Pieces::getColor(movePiece)], to);
 
     // Remove piece from old square
 
-    toggleBit(&colorBB[Pieces::getColor(movePiece)], from);
-    toggleBit(&pieceBB[Pieces::getType(movePiece)], from);
+    clearBit(&colorBB[Pieces::getColor(movePiece)], from);
+    clearBit(&pieceBB[Pieces::getType(movePiece)], from);
 
     // Add old square to empty squares bitboard
-    toggleBit(&pieceBB[Pieces::Empty], from);
+    setBit(&pieceBB[Pieces::Empty], from);
 }
 
 void Board::revertSetMove(Move move)
 {
     Piece movePiece = board[getTo(move)];
-    Piece capturedPiece = board[getFrom(move)];
+    Piece capturedPiece = getCapturedPiece(move);
 
     // Update array
     board[getFrom(move)] = movePiece;
@@ -148,11 +156,11 @@ indexList Board::piecesAttackingSquare(int square)
     Bitboard pawnBB = pieceBB[Pieces::Pawn] & enemyPieces;
     if (sideToMove == Pieces::White)
     {
-        pawnBB = shift(&pawnBB, SW, 1);
+        pawnBB = shift(&pawnBB, NE, 1);
     }
     else
     {
-        pawnBB = shift(&pawnBB, NE, 1);
+        pawnBB = shift(&pawnBB, SW, 1);
     }
     if (kingBB & pawnBB)
     {
@@ -161,11 +169,11 @@ indexList Board::piecesAttackingSquare(int square)
     }
     if (sideToMove == Pieces::White)
     {
-        pawnBB = shift(&pawnBB, SE, 1);
+        pawnBB = shift(&pawnBB, NW, 1);
     }
     else
     {
-        pawnBB = shift(&pawnBB, NW, 1);
+        pawnBB = shift(&pawnBB, SE, 1);
     }
     if (kingBB & pawnBB)
     {
@@ -233,7 +241,6 @@ void Board::makeMove(Move move)
     enPassantHistory[ply] = enPassantSquare;
 
     // Update the board
-    setMove(move);
 
     // Update en passant square
     if (isEnPassantCapture(move))
@@ -265,8 +272,16 @@ void Board::makeMove(Move move)
             blackCanCastleKingSide = false;
             blackCanCastleQueenSide = false;
         }
+        if (getTo(move) == 62)
+        {
+            setMove(getMove(60, 62));
+            setMove(getMove(63, 61));
+        }
     }
-
+    else
+    {
+        setMove(move);
+    }
     // Update ply
     ply++;
     // Update side to move
@@ -327,7 +342,7 @@ void Board::undoMove()
     allPiecesBB = colorBB[0] | colorBB[8]; // update all pieces bitboard
 }
 
-Move Board::getMove(int from, int to)
+Move Board::getMove(int from, int to, Piece promotion, bool isCastle)
 {
     // Move is formatted as follows:
     // 0000 0000 000000 000000
@@ -338,14 +353,18 @@ Move Board::getMove(int from, int to)
     move |= from;
     // Set to
     move |= to << 6;
+    // Set promotion
+    move |= promotion << 12;
     // Set isPromote
-    move |= 0 << 17;
+    move |= promotion > 0 << 17;
     // Set isCapture
     move |= getBit(&allPiecesBB, to) << 18;
-    // Set isCastle // TODO
-    move |= 0 << 19;
+    // Set isCastle
+    move |= isCastle << 19;
     // Set isEnPassant
     move |= (to == enPassantSquare) << 20;
+    // Set captured piece
+    move |= (board[to] & 0xF) << 20;
     return move;
 }
 
@@ -354,10 +373,14 @@ Board::Board()
     ply = 0;
     sideToMove = Pieces::White;
     otherSide = Pieces::Black;
+    blackCanCastleKingSide = true;
+    blackCanCastleQueenSide = true;
+    whiteCanCastleKingSide = true;
+    whiteCanCastleQueenSide = true;
     isWhite = Pieces::isWhite(sideToMove);
-    PsuedoLegalMoveGenerator psuedoGen(*this);
     loadFEN(startFen);
     initDirections();
+    initBBs();
     assert(~pieceBB[0] == allPiecesBB);
 }
 

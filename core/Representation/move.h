@@ -4,12 +4,12 @@
 #include <cstdint>
 #include "piece.h"
 
-// Moves will be a 16 bit unsigned integer
+// Moves will be a 24 bit unsigned integer
 typedef uint32_t Move;
 
 // Move format:
-// 0000 0000 000000 000000
-// ECCP Prom   To    From
+// 0000 0000 0000 000000 000000
+// Capt ECCP Prom   To    From
 // ECCP: En Passant, Castle, Capture, Promotion
 
 
@@ -21,7 +21,7 @@ constexpr bool isCapture(Move move)
 
 constexpr bool isCastle(Move move)
 {
-    return (move & 0x2000) != 0;
+    return ((move >> 19) & 1) != 0;
 }
 
 constexpr bool isEnPassant(Move move)
@@ -47,6 +47,11 @@ constexpr int getTo(Move move)
 constexpr int getFrom(Move move)
 {
     return move & 0x3F;
+}
+
+constexpr int getCapturedPiece(Move move)
+{
+    return (move >> 20) & 0xF;
 }
 
 constexpr bool isEnPassantCapture(Move move)
