@@ -1,12 +1,9 @@
 import tkinter
 from tkinter import ttk, messagebox
-import os, sys
-from io import StringIO
+import os
 import subprocess
 import time
 from PIL import Image, ImageTk
-import cv2
-import numpy as np
 
 
 root: tkinter.Tk
@@ -92,10 +89,10 @@ class Images:
         alpha = int(0.5 * 255)
         fillRed = rgb(255, 0, 0)
         fillRed = root.winfo_rgb(fillRed)
-        fillBlue = rgb(0, 0, 255)
+        fillBlue = rgb(0, 0, 200)
         fillBlue = root.winfo_rgb(fillBlue)
-        imageRed = Image.new("RGBA", (640 // 8, 640 // 8), fillRed)
-        imageBlue = Image.new("RGBA", (640 // 8, 640 // 8), fillBlue)
+        imageRed = Image.new("RGBA", (640 // 8 + 1, 640 // 8 + 1), fillRed)
+        imageBlue = Image.new("RGBA", (640 // 8 + 1, 640 // 8 + 1), fillBlue)
         imageRed.putalpha(int(0.5 * 255))
         imageBlue.putalpha(int(0.5 * 255))
 
@@ -158,10 +155,10 @@ class Manager:
     def getMoves(self) -> list[Move]:
         global AI, consoleCursor, consoleText
         AI.stdin.write("\n".encode())
-        AI.stdin.write("go perft 1\n".encode())
+        AI.stdin.write("go perft 8\n".encode())
         AI.stdin.flush()
         if DEBUG_MODE:
-            typeToConsole("GUI> go perft 1")
+            typeToConsole("GUI> go perft 6")
         moves = []
         d = False
         time.sleep(0.1)
@@ -264,9 +261,8 @@ class Square:
                     IMAGES.imageRed
                     if (bitboard >> self.index) & 1
                     else IMAGES.imageBlue
-                ),
+                )
             )
-            self.canvas.create_rectangle(x, 560 - y, x + width, 560 - y + height)
 
 
 class Board:
@@ -610,6 +606,8 @@ def main():
 
     root.bind("<Button-1>", MANAGER.board.onCLick)
 
+    appendToConsole("> ")
+    
     while running:
         boardCanvas.delete("all")
         MANAGER.board.update()
