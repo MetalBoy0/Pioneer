@@ -8,6 +8,15 @@ bool distIsMoreThanOne(int from, int to)
     return (abs(indexToRank(from) - indexToRank(to)) > 1) || (abs(indexToFile(from) - indexToFile(to)) > 1);
 }
 
+void generateCheckBB(Board *board)
+{
+    board->checkingBB = 0;
+    Bitboard king = board->pieceBB[Pieces::King] & board->colorBB[board->sideToMove];
+    int kingIndex = popLSB(&king);
+    
+
+}
+
 bool legalKnightMove(int from, int to)
 {
     int rankF = indexToRank(from);
@@ -248,7 +257,12 @@ void generateKingMoves(Board *board, MoveList *MoveList)
         while (moves)
         {
             int to = popLSB(&moves);
-            appendMove(MoveList, board->getMove(kingIndex, to));
+            // TODO: Can make another function more specialized for this, such as a function that checks if a piece is attacking a square
+            // TODO: Instead of a function that checks how many pieces are attacking a square
+            if (board->piecesAttackingSquare(to).count == 0)
+            {
+                appendMove(MoveList, board->getMove(kingIndex, to));
+            }
         }
     }
 }
@@ -256,6 +270,8 @@ void generateKingMoves(Board *board, MoveList *MoveList)
 void generateMoves(Board *board, MoveList *moveList, bool onlyCaptures)
 {
     moveList->count = 0;
+
+    generateCheckBB(board);
 
     // Generate moves for each piece
 

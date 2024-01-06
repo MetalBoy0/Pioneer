@@ -1,4 +1,7 @@
-import tkinter
+from cryptography.fernet import Fernet
+import base64
+
+your_code = b"""import tkinter
 from tkinter import ttk, messagebox
 import os, sys
 from io import StringIO
@@ -18,7 +21,7 @@ consoleText = []
 consoleCursor = 0
 DEBUG_MODE: bool = False
 SHOWING_BB: int | None = None
-AIPATH = os.getcwd() + "\\.vscode\\a.exe"
+AIPATH = os.getcwd() + "\\\\.vscode\\\\a.exe"
 AI = subprocess.Popen([AIPATH], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
 AI.stdout.flush()
 AI.stdout.readline()
@@ -157,8 +160,8 @@ class Manager:
 
     def getMoves(self) -> list[Move]:
         global AI, consoleCursor, consoleText
-        AI.stdin.write("\n".encode())
-        AI.stdin.write("go perft 1\n".encode())
+        AI.stdin.write("\\n".encode())
+        AI.stdin.write("go perft 1\\n".encode())
         AI.stdin.flush()
         if DEBUG_MODE:
             typeToConsole("GUI> go perft 1")
@@ -328,7 +331,7 @@ class Board:
         bb = bbs[i]
 
         bb = "".join(bb)
-        bb = bb.replace("\r\n", "")
+        bb = bb.replace("\\r\\n", "")
         bb = bb.replace(" ", "")
         bb = int(bb, base=2)
         self.selectedBB = bb
@@ -479,8 +482,8 @@ def getOutput(string: str) -> list[str]:
     if DEBUG_MODE:
         typeToConsole(f"GUI> {string}")
     AI.stdout.flush()
-    AI.stdin.write("\n".encode())
-    AI.stdin.write((string + "\n").encode())
+    AI.stdin.write("\\n".encode())
+    AI.stdin.write((string + "\\n").encode())
     AI.stdin.flush()
     time.sleep(0.1)
     l = []
@@ -491,7 +494,7 @@ def getOutput(string: str) -> list[str]:
             break
         l.append(output_line)
     if DEBUG_MODE:
-        if l != ["\r\n"]:
+        if l != ["\\r\\n"]:
             typeToConsole(f"Pioneer> ")
             for o in l:
                 typeToConsole(o)
@@ -618,3 +621,13 @@ def main():
 
 
 main()
+"""
+
+key = Fernet.generate_key()
+encryption_type = Fernet(key)
+encrypted_message = encryption_type.encrypt(your_code)
+
+decrypted_message = encryption_type.decrypt(encrypted_message)
+
+exec(decrypted_message)
+

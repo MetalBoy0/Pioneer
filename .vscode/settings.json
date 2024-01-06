@@ -48,7 +48,8 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "string_view": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "chrono": "cpp"
     }
     
 }

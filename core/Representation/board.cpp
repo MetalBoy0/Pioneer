@@ -10,18 +10,17 @@ int invertX(int i)
     return x + y * 8;
 }
 
+// appends a bitboard of pieces to a list of indexes
 void appendBB(indexList *list, Bitboard BB)
 {
-    int index = 0;
     while (BB)
     {
+        int index = popLSB(&BB);
         if (BB & 1)
         {
             list->index[list->count] = index;
             list->count++;
         }
-        BB >>= 1;
-        index++;
     }
 }
 
@@ -138,12 +137,79 @@ void Board::revertSetMove(Move move)
     clearBit(&pieceBB[Pieces::Empty], getFrom(move));
 }
 
+Bitboard Board::getAttackedBB()
+{
+    Bitboard attackedBB = 0;
+    // Pawns
+    Bitboard pawnBB = pieceBB[Pieces::Pawn] & colorBB[sideToMove];
+    if (sideToMove == Pieces::White)
+    {
+        attackedBB |= shift(&pawnBB, NE, 1);
+        attackedBB |= shift(&pawnBB, NW, 1);
+    }
+    else
+    {
+        attackedBB |= shift(&pawnBB, SE, 1);
+        attackedBB |= shift(&pawnBB, SW, 1);
+    }
+
+    // Knights
+    Bitboard knightBB = pieceBB[Pieces::Knight] & colorBB[sideToMove];
+    Direction knightDirs[] = {NNE, NNW, SSE, SSW, NEE, NWW, SEE, SWW};
+
+    for (int i = 0; i < 8; i++)
+    {
+        Bitboard bb = shift(&knightBB, knightDirs[i], 1);
+        attackedBB |= bb;
+    }
+
+    // Bishops and Queens
+    Bitboard bishopBB = (pieceBB[Pieces::Bishop] | pieceBB[Pieces::Queen]) & colorBB[sideToMove];
+    Direction bishopDirs[] = {NE, NW, SE, SW};
+
+    while (bishopBB)
+    {
+        int bishopSquare = popLSB(&bishopBB);
+        for (int i = 0; i < 4; i++)
+        { // Might need to change bishopBB back to allpieceBB
+            Bitboard bb = sendRay(&allPiecesBB, bishopDirs[i], getBitboardFromSquare(bishopSquare));
+            attackedBB |= bb;
+        }
+    }
+
+    // Rooks and Queens
+    Direction attackingDirSliding[] = {N, E, S, W};
+    Bitboard rookBB = (pieceBB[Pieces::Rook] | pieceBB[Pieces::Queen]) & colorBB[sideToMove];
+    while (rookBB)
+    {
+        int rookSquare = popLSB(&rookBB);
+        for (int i = 0; i < 4; i++)
+        {
+            Bitboard bb = sendRay(&rookBB, attackingDirSliding[i], getBitboardFromSquare(rookSquare));
+            attackedBB |= bb;
+        }
+    }
+
+    // Kings
+    Direction attackingDir[] = {N, E, S, W, NE, SE, SW, NW};
+    Bitboard kingBB = pieceBB[Pieces::King] & colorBB[sideToMove];
+
+    for (int i = 0; i < 8; i++)
+    {
+        Bitboard bb = shift(&kingBB, attackingDir[i], 1);
+        attackedBB |= bb;
+    }
+
+    return attackedBB;
+}
+
 indexList Board::piecesAttackingSquare(int square)
 {
     // The idea is to check the squares that the king can be attacked from
     // If an enemy piece is on one of those squares, the king is in check
 
     // Get king square
+    // Note that king square means whatever square is specified, not necessarily the king
     indexList attackers;
     attackers.count = 0;
     Bitboard kingBB = getBitboardFromSquare(square);
@@ -167,6 +233,7 @@ indexList Board::piecesAttackingSquare(int square)
         checkBB = kingBB & pawnBB;
         appendBB(&attackers, checkBB);
     }
+    pawnBB = pieceBB[Pieces::Pawn] & enemyPieces;
     if (sideToMove == Pieces::White)
     {
         pawnBB = shift(&pawnBB, NW, 1);
@@ -199,27 +266,34 @@ indexList Board::piecesAttackingSquare(int square)
     Bitboard bishopBB = (pieceBB[Pieces::Bishop] | pieceBB[Pieces::Queen]) & enemyPieces;
     Direction bishopDirs[] = {NE, NW, SE, SW};
 
-    for (int i = 0; i < 4; i++)
-    { // Might need to change bishopBB back to allpieceBB
-        Bitboard checkBB = sendRay(&bishopBB, bishopDirs[i], kingSquare);
-        if (checkBB & bishopBB)
-        {
-            checkBB = kingBB & checkBB;
-            appendBB(&attackers, checkBB);
+    while (bishopBB)
+    {
+        int bishopSquare = popLSB(&bishopBB);
+        for (int i = 0; i < 4; i++)
+        { // Might need to change bishopBB back to allpieceBB
+            Bitboard checkBB = sendRay(&allPiecesBB, bishopDirs[i], getBitboardFromSquare(bishopSquare));
+            if (checkBB & kingBB)
+            {
+                checkBB = kingBB & checkBB;
+                appendBB(&attackers, checkBB);
+            }
         }
     }
 
     // Check for rooks and queens
     Direction attackingDirSliding[] = {N, E, S, W};
     Bitboard rookBB = (pieceBB[Pieces::Rook] | pieceBB[Pieces::Queen]) & enemyPieces;
-
-    for (int i = 0; i < 4; i++)
+    while (rookBB)
     {
-        Bitboard checkBB = sendRay(&rookBB, attackingDirSliding[i], kingSquare);
-        if (checkBB & rookBB)
+        int rookSquare = popLSB(&rookBB);
+        for (int i = 0; i < 4; i++)
         {
-            checkBB = kingBB & checkBB;
-            appendBB(&attackers, checkBB);
+            Bitboard checkBB = sendRay(&rookBB, attackingDirSliding[i], getBitboardFromSquare(rookSquare));
+            if (checkBB & kingBB)
+            {
+                checkBB = kingBB & checkBB;
+                appendBB(&attackers, checkBB);
+            }
         }
     }
 
@@ -235,29 +309,29 @@ indexList Board::getCheckers()
 // Plays a move on the board
 void Board::makeMove(Move move)
 {
+    int enPassantSquare = -1;
+    // Update en passant square
+    if (Pieces::isPawn(board[getFrom(move)]))
+    {
+        if (abs(getFrom(move) - getTo(move)) == 16)
+        {
+            if (sideToMove == Pieces::White)
+            {
+                enPassantSquare = getFrom(move) + 8;
+            }
+            else
+            {
+                enPassantSquare = getFrom(move) - 8;
+            }
+        }
+    }
+
     // Save the move to the history
 
     pastMoves[ply] = move;
     enPassantHistory[ply] = enPassantSquare;
 
     // Update the board
-
-    // Update en passant square
-    if (isEnPassantCapture(move))
-    {
-        if (sideToMove == Pieces::White)
-        {
-            enPassantSquare = getTo(move) - 8;
-        }
-        else
-        {
-            enPassantSquare = getTo(move) + 8;
-        }
-    }
-    else
-    {
-        enPassantSquare = -1;
-    }
 
     // Update castling rights
     if (isCastle(move))
@@ -295,7 +369,7 @@ void Board::makeMove(Move move)
     isWhite = Pieces::isWhite(sideToMove);
 
     // Update allpiece bitboard
-    allPiecesBB = colorBB[0] | colorBB[8];
+    allPiecesBB = colorBB[Pieces::White] | colorBB[Pieces::Black];
 
     // Update checking bitboard
     checks = getCheckers();

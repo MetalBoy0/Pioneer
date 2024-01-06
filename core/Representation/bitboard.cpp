@@ -172,7 +172,12 @@ Bitboard bitboardRay(int from, int to)
 
 Bitboard sendRay(Bitboard *bb, Direction dir, int square)
 {
+
     int to = square + dir;
+    if (square == to)
+    {
+        return 0ULL;
+    }
     while (true)
     {
         if (to < 0 || to > 63)
@@ -185,10 +190,7 @@ Bitboard sendRay(Bitboard *bb, Direction dir, int square)
         }
         if (getBit(bb, to))
         {
-            if (square == to)
-            {
-                return 0ULL;
-            }
+
             return bitboardRay(square, to);
         }
         to += dir;

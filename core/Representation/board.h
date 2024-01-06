@@ -59,6 +59,7 @@ public:
 
     indexList piecesAttackingSquare(int square); // Returns the number of enemy pieces attacking the square
     indexList getCheckers();
+    Bitboard getAttackedBB();
 
     // Constructor
     Board(); // Default constructor

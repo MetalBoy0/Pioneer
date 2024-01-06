@@ -3,13 +3,15 @@
 #include "../../uci.h"
 #include <cassert>
 
-
-
 int perft(Board *board, unsigned int depth, unsigned int ply)
 {
     Bitboard origin = board->pieceBB[Pieces::Empty];
     MoveList moveList;
     generateMoves(board, &moveList);
+    if (depth == 1)
+    {
+        return moveList.count;
+    }
     if (depth == 0)
     {
         return 1;
@@ -36,6 +38,7 @@ int perft(Board *board, unsigned int depth, unsigned int ply)
         board->undoMove();
     }
 
+    
     return nodes;
 }
 
