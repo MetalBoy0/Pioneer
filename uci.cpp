@@ -212,6 +212,15 @@ void parseDebug(istringstream &parser)
             printBitboard(&board.colorBB[0]);
             printBitboard(&board.colorBB[8]);
         }
+        if (input == "enpassant")
+        {
+            cout << board.enPassantSquare << endl;
+        }
+        if (input == "attackedBB")
+        {
+            Bitboard attackedBB = board.getAttackedBB();
+            printBitboard(&attackedBB);
+        }
     }
 }
 

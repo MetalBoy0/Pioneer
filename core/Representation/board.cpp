@@ -144,23 +144,25 @@ Bitboard Board::getAttackedBB()
     Bitboard pawnBB = pieceBB[Pieces::Pawn] & colorBB[sideToMove];
     if (sideToMove == Pieces::White)
     {
-        attackedBB |= shift(&pawnBB, NE, 1);
-        attackedBB |= shift(&pawnBB, NW, 1);
+        Bitboard pawnsBB_ = pawnBB & (middleMask | fileMasks[0]);
+        attackedBB |= shift(&pawnsBB_, SE, 1) & ~colorBB[sideToMove];
+        pawnsBB_ = pawnBB & (middleMask | fileMasks[7]);
+        attackedBB |= shift(&pawnsBB_, SW, 1) & ~colorBB[sideToMove];
     }
     else
     {
-        attackedBB |= shift(&pawnBB, SE, 1);
-        attackedBB |= shift(&pawnBB, SW, 1);
+        Bitboard pawnsBB_ = pawnBB & (middleMask | fileMasks[0]);
+        attackedBB |= shift(&pawnsBB_, NE, 1) & ~colorBB[sideToMove];
+        pawnsBB_ = pawnBB & (middleMask | fileMasks[7]);
+        attackedBB |= shift(&pawnsBB_, NW, 1) & ~colorBB[sideToMove];
     }
 
     // Knights
     Bitboard knightBB = pieceBB[Pieces::Knight] & colorBB[sideToMove];
-    Direction knightDirs[] = {NNE, NNW, SSE, SSW, NEE, NWW, SEE, SWW};
 
-    for (int i = 0; i < 8; i++)
+    while (knightBB)
     {
-        Bitboard bb = shift(&knightBB, knightDirs[i], 1);
-        attackedBB |= bb;
+        attackedBB |= knightMoves[popLSB(&knightBB)] & ~colorBB[sideToMove];
     }
 
     // Bishops and Queens
@@ -172,7 +174,8 @@ Bitboard Board::getAttackedBB()
         int bishopSquare = popLSB(&bishopBB);
         for (int i = 0; i < 4; i++)
         { // Might need to change bishopBB back to allpieceBB
-            Bitboard bb = sendRay(&allPiecesBB, bishopDirs[i], getBitboardFromSquare(bishopSquare));
+            // ! Possible error here that might be hidden by pieces being next to selected bishop
+            Bitboard bb = sendRay(&allPiecesBB, bishopDirs[i], bishopSquare) & ~colorBB[sideToMove];
             attackedBB |= bb;
         }
     }
@@ -185,7 +188,8 @@ Bitboard Board::getAttackedBB()
         int rookSquare = popLSB(&rookBB);
         for (int i = 0; i < 4; i++)
         {
-            Bitboard bb = sendRay(&rookBB, attackingDirSliding[i], getBitboardFromSquare(rookSquare));
+            //! Same thing as with the bishop error here (I think it has to do with it being next to the edge without being surrounded, probably an error with the send ray or BitboardRay function), look up ^
+            Bitboard bb = sendRay(&allPiecesBB, attackingDirSliding[i], rookSquare) & ~colorBB[sideToMove];
             attackedBB |= bb;
         }
     }
@@ -196,7 +200,7 @@ Bitboard Board::getAttackedBB()
 
     for (int i = 0; i < 8; i++)
     {
-        Bitboard bb = shift(&kingBB, attackingDir[i], 1);
+        Bitboard bb = shift(&kingBB, attackingDir[i], 1) & ~colorBB[sideToMove];
         attackedBB |= bb;
     }
 
@@ -271,7 +275,7 @@ indexList Board::piecesAttackingSquare(int square)
         int bishopSquare = popLSB(&bishopBB);
         for (int i = 0; i < 4; i++)
         { // Might need to change bishopBB back to allpieceBB
-            Bitboard checkBB = sendRay(&allPiecesBB, bishopDirs[i], getBitboardFromSquare(bishopSquare));
+            Bitboard checkBB = sendRay(&allPiecesBB, bishopDirs[i], bishopSquare);
             if (checkBB & kingBB)
             {
                 checkBB = kingBB & checkBB;
@@ -288,7 +292,7 @@ indexList Board::piecesAttackingSquare(int square)
         int rookSquare = popLSB(&rookBB);
         for (int i = 0; i < 4; i++)
         {
-            Bitboard checkBB = sendRay(&rookBB, attackingDirSliding[i], getBitboardFromSquare(rookSquare));
+            Bitboard checkBB = sendRay(&rookBB, attackingDirSliding[i], rookSquare);
             if (checkBB & kingBB)
             {
                 checkBB = kingBB & checkBB;
@@ -309,7 +313,9 @@ indexList Board::getCheckers()
 // Plays a move on the board
 void Board::makeMove(Move move)
 {
-    int enPassantSquare = -1;
+    bool moveEnPassant = isEnPassant(move);
+    enPassantHistory[ply] = enPassantSquare;
+    enPassantSquare = -1;
     // Update en passant square
     if (Pieces::isPawn(board[getFrom(move)]))
     {
@@ -317,11 +323,11 @@ void Board::makeMove(Move move)
         {
             if (sideToMove == Pieces::White)
             {
-                enPassantSquare = getFrom(move) + 8;
+                enPassantSquare = getFrom(move) - 8;
             }
             else
             {
-                enPassantSquare = getFrom(move) - 8;
+                enPassantSquare = getFrom(move) + 8;
             }
         }
     }
@@ -329,9 +335,10 @@ void Board::makeMove(Move move)
     // Save the move to the history
 
     pastMoves[ply] = move;
-    enPassantHistory[ply] = enPassantSquare;
 
     // Update the board
+
+    // if enPassant
 
     // Update castling rights
     if (isCastle(move))
@@ -351,6 +358,19 @@ void Board::makeMove(Move move)
             setMove(getMove(60, 62));
             setMove(getMove(63, 61));
         }
+    }
+    else if (moveEnPassant)
+    {
+        setMove(move);
+
+        // Remove enemy pawn
+
+        int enemyPawn = getTo(move) + (isWhite ? 8 : -8);
+
+        board[enemyPawn] = Pieces::Empty;
+        clearBit(&pieceBB[Pieces::Pawn], enemyPawn);
+        clearBit(&colorBB[otherSide], enemyPawn);
+        setBit(&pieceBB[Pieces::Empty], enemyPawn);
     }
     else
     {
@@ -410,6 +430,15 @@ void Board::undoMove()
             blackCanCastleQueenSide = true;
         }
     }
+    if (enPassantSquare == getTo(pastMoves[ply]))
+    {
+        int enemyPawn = getTo(pastMoves[ply]) + (isWhite ? 8 : -8);
+
+        setBit(&pieceBB[Pieces::Pawn], enemyPawn);
+        setBit(&colorBB[otherSide], enemyPawn);
+        clearBit(&pieceBB[Pieces::Empty], enemyPawn);
+        board[enemyPawn] = otherSide | Pieces::Pawn;
+    }
 
     // Update the board
     revertSetMove(pastMoves[ply]);
@@ -435,11 +464,14 @@ Move Board::getMove(int from, int to, Piece promotion, bool isCastle)
     move |= getBit(&allPiecesBB, to) << 18;
     // Set isCastle
     move |= isCastle << 19;
-    // Set isEnPassant
-    move |= (to == enPassantSquare) << 20;
     // Set captured piece
     move |= (board[to] & 0xF) << 20;
     return move;
+}
+
+bool Board::isEnPassant(Move move)
+{
+    return getTo(move) == enPassantSquare;
 }
 
 Board::Board()
@@ -451,6 +483,7 @@ Board::Board()
     blackCanCastleQueenSide = true;
     whiteCanCastleKingSide = true;
     whiteCanCastleQueenSide = true;
+    enPassantSquare = -1;
     isWhite = Pieces::isWhite(sideToMove);
     loadFEN(startFen);
     initDirections();

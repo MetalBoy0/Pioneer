@@ -9,7 +9,7 @@ from PIL import Image, ImageTk
 root: tkinter.Tk
 consoleTextInput: tkinter.Listbox
 
-startingFen = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R"
+startingFen = "3B4/8/8/8/8/8/8/8"  # "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R"
 running = True
 consoleText = []
 consoleCursor = 0
@@ -127,10 +127,11 @@ class Images:
 
 
 class Move:
-    def __init__(self, start: int, end: int, castle=False):
+    def __init__(self, start: int, end: int, castle=False, enPassant=False):
         self.start = start
         self.end = end
         self.castle = castle
+        self.enPassant = enPassant
 
     def __str__(self):
         if self.castle and (self.end - self.start > 0):
@@ -155,10 +156,10 @@ class Manager:
     def getMoves(self) -> list[Move]:
         global AI, consoleCursor, consoleText
         AI.stdin.write("\n".encode())
-        AI.stdin.write("go perft 8\n".encode())
+        AI.stdin.write("go perft 1\n".encode())
         AI.stdin.flush()
         if DEBUG_MODE:
-            typeToConsole("GUI> go perft 6")
+            typeToConsole("GUI> go perft 1")
         moves = []
         d = False
         time.sleep(0.1)
@@ -195,12 +196,26 @@ class Manager:
         string = "makemove " + str(move)
         print(string)
         AI.stdin.write((string).encode())
+        if move.end == self.board.enPassant:
+            move.enPassant = True
+        self.board.enPassant = None
+
+        if (
+            getPiece(self.board.board[move.start % 8][move.start // 8].piece) == P
+            and abs(move.start - move.end) == 16
+        ):
+            self.board.enPassant = move.start + (8 if self.board.isWhiteTurn else -8)
         if move.castle and (move.end - move.start > 0):
             sideAdd = 0 if self.board.isWhiteTurn else 56
             self.board.movePiece(7 + sideAdd, 5 + sideAdd)
             self.board.movePiece(4 + sideAdd, 6 + sideAdd)
+        elif move.enPassant:
+            self.board.movePiece(move.start, move.end)
+            enemyPawn = move.end + (-8 if self.board.isWhiteTurn else 8)
+            self.board.board[enemyPawn % 8][enemyPawn // 8].piece = EMPTY
         else:
             self.board.movePiece(move.start, move.end)
+
         self.getMoves()
         self.board.isWhiteTurn = not self.board.isWhiteTurn
 
@@ -261,7 +276,7 @@ class Square:
                     IMAGES.imageRed
                     if (bitboard >> self.index) & 1
                     else IMAGES.imageBlue
-                )
+                ),
             )
 
 
@@ -273,6 +288,7 @@ class Board:
         self.fen = startingFen
         self.isWhiteTurn = True
         self.moves = []
+        self.enPassant = None
         self.selPieceMoves = []
         self.selected = (-1, -1)
         self.lastMove = None
@@ -321,6 +337,13 @@ class Board:
                     continue
                 bbs[-1].append(x)
 
+        o = getOutput("debug print attackedBB")
+
+        bbs.append([])
+        for _, x in enumerate(o):
+            if not ("1" in x or "0" in x):
+                continue
+            bbs[-1].append(x)
         bb = bbs[i]
 
         bb = "".join(bb)
@@ -438,15 +461,15 @@ def processCommand(string) -> ConsoleReturn:
             "all": 7,
             "black": 9,
             "white": 8,
+            "attacked": 10,
             "none": None,
         }
 
         t = string[1].lower()
         if t[-1] == "s":
             t = t[:-1]
-        
-        SHOWING_BB = bbi[t]
 
+        SHOWING_BB = bbi[t]
 
         return ConsoleReturn(False, "")
     elif string[0] == "debugmode":
@@ -607,7 +630,7 @@ def main():
     root.bind("<Button-1>", MANAGER.board.onCLick)
 
     appendToConsole("> ")
-    
+
     while running:
         boardCanvas.delete("all")
         MANAGER.board.update()

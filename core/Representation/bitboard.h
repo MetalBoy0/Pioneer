@@ -15,6 +15,7 @@ extern const Bitboard longCastle[9];
 
 // File masks
 extern const Bitboard fileMasks[8];
+extern const Bitboard middleMask;
 
 // Rank masks
 extern const Bitboard rankMasks[8];
@@ -24,6 +25,11 @@ extern Bitboard knightMoves[64];
 
 // King moves
 extern Bitboard kingMoves[64];
+
+// Direction BBs
+extern Bitboard diagonalsBB[64];
+extern Bitboard straightsBB[64];
+extern Bitboard canSeeBB[64];
 
 extern void printBitboard(Bitboard *bb);
 extern Bitboard bitboardRay(Direction dir, int square);

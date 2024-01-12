@@ -1,5 +1,7 @@
 #ifndef DIRECTION_H
 #define DIRECTION_H
+#include <cstdint>
+#include <cstdlib>
 
 enum Direction
 {
@@ -23,14 +25,24 @@ enum Direction
     NWW = 6,
     NNW = 15
 };
+
 extern Direction directions[64][64];
+extern int16_t distToEdge[64][8];
 extern void initDirections();
+extern int getDirIndex(Direction dir);
 namespace
 {
 
     Direction getDirectionBetween(int from, int to)
     {
         return directions[from][to];
+    }
+
+    bool onEdge(int to)
+    {
+        return (!distToEdge[to][0] || !distToEdge[to][1] || !distToEdge[to][2] ||
+                !distToEdge[to][3] || !distToEdge[to][4] || !distToEdge[to][5] ||
+                !distToEdge[to][6] || !distToEdge[to][7]);
     }
 
 }

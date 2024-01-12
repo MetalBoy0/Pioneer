@@ -1,5 +1,6 @@
 #include "movegen.h"
 #include "../Representation/piece.h"
+
 int captures = 0;
 int checks = 0;
 
@@ -10,11 +11,9 @@ bool distIsMoreThanOne(int from, int to)
 
 void generateCheckBB(Board *board)
 {
-    board->checkingBB = 0;
+    board->checkingBB = -1;
     Bitboard king = board->pieceBB[Pieces::King] & board->colorBB[board->sideToMove];
     int kingIndex = popLSB(&king);
-    
-
 }
 
 bool legalKnightMove(int from, int to)
@@ -279,6 +278,7 @@ void generateMoves(Board *board, MoveList *moveList, bool onlyCaptures)
     generateKnightMoves(board, moveList, onlyCaptures);
     generateSlidingMoves(board, moveList, onlyCaptures);
     generateKingMoves(board, moveList);
+    generateCastles(board, moveList);
     if (!onlyCaptures)
     {
         // generateCastles(board, moveList);

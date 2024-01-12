@@ -36,6 +36,7 @@ public:
     void undoMove();
     void setMove(Move move);
     void revertSetMove(Move move);
+    bool isEnPassant(Move move);
     Move getMove(int from, int to, Piece piece = Pieces::Empty, bool isCastle = false);
 
     // Bitboards

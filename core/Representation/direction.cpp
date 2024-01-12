@@ -1,6 +1,36 @@
 #include "direction.h"
 
+using namespace std;
+
 Direction directions[64][64];
+/*Distance to the edge of the board from every direction, in order:
+  In order N S E W NE NW SE SW*/
+int16_t distToEdge[64][8];
+
+int getDirIndex(Direction dir)
+{
+    switch (dir)
+    {
+    case 8:
+        return 0;
+    case -8:
+        return 1;
+    case 1:
+        return 2;
+    case -1:
+        return 3;
+    case 9:
+        return 4;
+    case 7:
+        return 5;
+    case -7:
+        return 6;
+    case -9:
+        return 7;
+    default:
+        return 0;
+    }
+}
 
 // Init the direction array
 void initDirections()
@@ -86,5 +116,21 @@ void initDirections()
                 directions[i][b] = NULLDIR;
             }
         }
+        int n = 7 - rank;
+        int s = rank;
+        int w = file;
+        int e = 7 - file;
+        int ne = __builtin_fminf(n, e);
+        int nw = __builtin_fminf(n, w);
+        int se = __builtin_fminf(s, e);
+        int sw = __builtin_fminf(s, w);
+        distToEdge[i][0] = n;
+        distToEdge[i][1] = s;
+        distToEdge[i][2] = e;
+        distToEdge[i][3] = w;
+        distToEdge[i][4] = ne;
+        distToEdge[i][5] = nw;
+        distToEdge[i][6] = se;
+        distToEdge[i][7] = sw;
     }
 }

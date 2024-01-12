@@ -24,10 +24,6 @@ constexpr bool isCastle(Move move)
     return ((move >> 19) & 1) != 0;
 }
 
-constexpr bool isEnPassant(Move move)
-{
-    return (move & 0x4000) != 0;
-}
 
 constexpr bool isPromotion(Move move)
 {
@@ -54,9 +50,5 @@ constexpr int getCapturedPiece(Move move)
     return (move >> 20) & 0xF;
 }
 
-constexpr bool isEnPassantCapture(Move move)
-{
-    return isCapture(move) && isEnPassant(move);
-}
 
 #endif
