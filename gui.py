@@ -1,24 +1,15 @@
 import tkinter
 from tkinter import ttk, messagebox
-import os
+import os, sys
+from io import StringIO
 import subprocess
 import time
 from PIL import Image, ImageTk
 
 
-root: tkinter.Tk
-consoleTextInput: tkinter.Listbox
-
-startingFen = "3B4/8/8/8/8/8/8/8"  # "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R"
+startingFen = "rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR"
 running = True
-consoleText = []
-consoleCursor = 0
-DEBUG_MODE: bool = False
-SHOWING_BB: int | None = None
-AIPATH = os.getcwd() + "\\.vscode\\a.exe"
-AI = subprocess.Popen([AIPATH], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-AI.stdout.flush()
-AI.stdout.readline()
+
 
 EMPTY = 0
 WC = 0
@@ -86,18 +77,7 @@ class Images:
         BPawnIM = pieces.crop((5 * 2000 // 6, 667 // 2, 2000, 667)).resize(
             (640 // 8, 640 // 8)
         )
-        alpha = int(0.5 * 255)
-        fillRed = rgb(255, 0, 0)
-        fillRed = root.winfo_rgb(fillRed)
-        fillBlue = rgb(0, 0, 200)
-        fillBlue = root.winfo_rgb(fillBlue)
-        imageRed = Image.new("RGBA", (640 // 8 + 1, 640 // 8 + 1), fillRed)
-        imageBlue = Image.new("RGBA", (640 // 8 + 1, 640 // 8 + 1), fillBlue)
-        imageRed.putalpha(int(0.5 * 255))
-        imageBlue.putalpha(int(0.5 * 255))
 
-        self.imageRed = ImageTk.PhotoImage(imageRed)
-        self.imageBlue = ImageTk.PhotoImage(imageBlue)
         self.WKingIM = ImageTk.PhotoImage(WKingIM)
         self.WQueenIM = ImageTk.PhotoImage(WQueenIM)
         self.WBishopIM = ImageTk.PhotoImage(WBishopIM)
@@ -127,11 +107,10 @@ class Images:
 
 
 class Move:
-    def __init__(self, start: int, end: int, castle=False, enPassant=False):
+    def __init__(self, start: int, end: int, castle=False):
         self.start = start
         self.end = end
         self.castle = castle
-        self.enPassant = enPassant
 
     def __str__(self):
         if self.castle and (self.end - self.start > 0):
@@ -152,14 +131,12 @@ class Move:
 class Manager:
     def __init__(self, canvas: tkinter.Canvas):
         self.board = Board(canvas)
+        self.moves = []
 
     def getMoves(self) -> list[Move]:
-        global AI, consoleCursor, consoleText
         AI.stdin.write("\n".encode())
         AI.stdin.write("go perft 1\n".encode())
         AI.stdin.flush()
-        if DEBUG_MODE:
-            typeToConsole("GUI> go perft 1")
         moves = []
         d = False
         time.sleep(0.1)
@@ -186,44 +163,41 @@ class Manager:
                     )
 
         self.board.moves = moves
-        if DEBUG_MODE:
-            if moves != []:
-                typeToConsole(f"Pioneer> {moves[0]}... Amount: {len(moves)}")
-            typeToConsole(consoleText[consoleCursor])
         return moves
 
     def makeMove(self, move: Move):
+        self.moves.append(move)
         string = "makemove " + str(move)
         print(string)
         AI.stdin.write((string).encode())
-        if move.end == self.board.enPassant:
-            move.enPassant = True
-        self.board.enPassant = None
-
-        if (
-            getPiece(self.board.board[move.start % 8][move.start // 8].piece) == P
-            and abs(move.start - move.end) == 16
-        ):
-            self.board.enPassant = move.start + (8 if self.board.isWhiteTurn else -8)
         if move.castle and (move.end - move.start > 0):
             sideAdd = 0 if self.board.isWhiteTurn else 56
             self.board.movePiece(7 + sideAdd, 5 + sideAdd)
             self.board.movePiece(4 + sideAdd, 6 + sideAdd)
-        elif move.enPassant:
-            self.board.movePiece(move.start, move.end)
-            enemyPawn = move.end + (-8 if self.board.isWhiteTurn else 8)
-            self.board.board[enemyPawn % 8][enemyPawn // 8].piece = EMPTY
         else:
             self.board.movePiece(move.start, move.end)
-
         self.getMoves()
         self.board.isWhiteTurn = not self.board.isWhiteTurn
+        print("".join(getOutput("d")))
 
+    def undoMove(self):
+        move = self.moves[-1]
+        self.moves.pop()
+        if move.castle and (move.end - move.start > 0):
+            sideAdd = 0 if self.board.isWhiteTurn else 56
+            self.board.movePiece(5 + sideAdd, 7 + sideAdd)
+            self.board.movePiece(6 + sideAdd, 4 + sideAdd)
+        else:
+            self.board.movePiece(move.end, move.start)
+        AI.stdin.write("undomove\n".encode())
+        self.board.isWhiteTurn = not self.board.isWhiteTurn
+        self.getMoves()
+        print("undomove")
 
 class Square:
     def __init__(self, x: int, y: int, canvas: tkinter.Canvas):
         self.coords = (x, y)
-        self.index = (7 - x) + y * 8
+        self.index = x + y * 8
         self.piece = EMPTY
         self.isMoveable = False
         self.selected = False
@@ -232,7 +206,7 @@ class Square:
         self.isLastMoved = False
         self.castle = False
 
-    def update(self, width, height, bitboard):
+    def update(self, width, height):
         x = self.coords[0] * width
         y = self.coords[1] * height
         color = (
@@ -269,26 +243,16 @@ class Square:
             )
         else:
             self.image = None
-        if bitboard:
-            self.canvas.create_image(
-                (x + 640 // 8 // 2, 560 - y + 640 // 8 // 2),
-                image=(
-                    IMAGES.imageRed
-                    if (bitboard >> self.index) & 1
-                    else IMAGES.imageBlue
-                ),
-            )
+        v = False
 
 
 class Board:
     def __init__(self, canvas: tkinter.Canvas):
-        self.selectedBB = None
         self.canvas = canvas
         self.board = [[Square(x, y, self.canvas) for y in range(8)] for x in range(8)]
         self.fen = startingFen
         self.isWhiteTurn = True
         self.moves = []
-        self.enPassant = None
         self.selPieceMoves = []
         self.selected = (-1, -1)
         self.lastMove = None
@@ -305,7 +269,7 @@ class Board:
                 i += int(f)
                 continue
 
-            x = 7 - i % 8
+            x = i % 8
             y = i // 8
 
             if f.lower() == f:
@@ -325,32 +289,6 @@ class Board:
             elif f.lower() == "k":
                 self.board[7 - x][7 - y].piece = color | K
             i += 1
-
-    def getBB(self, i):
-        o = getOutput("debug print bitboard")
-
-        bbs = []
-        for x in range(10):
-            bbs.append([])
-            for _, x in enumerate(o[i * 9 : i * 9 + 9]):
-                if not ("1" in x or "0" in x):
-                    continue
-                bbs[-1].append(x)
-
-        o = getOutput("debug print attackedBB")
-
-        bbs.append([])
-        for _, x in enumerate(o):
-            if not ("1" in x or "0" in x):
-                continue
-            bbs[-1].append(x)
-        bb = bbs[i]
-
-        bb = "".join(bb)
-        bb = bb.replace("\r\n", "")
-        bb = bb.replace(" ", "")
-        bb = int(bb, base=2)
-        self.selectedBB = bb
 
     def movePiece(self, start: int, end: int):
         if self.lastMove != None:
@@ -397,11 +335,6 @@ class Board:
         self.update()
 
     def update(self):
-        global SHOWING_BB
-        if SHOWING_BB != None:
-            self.getBB(SHOWING_BB)
-        else:
-            self.selectedBB = None
         movesAll = [
             move.end
             for move in self.moves
@@ -423,17 +356,32 @@ class Board:
                     self.board[x][y].castle = True
                 else:
                     self.board[x][y].castle = False
-                self.board[x][y].update(640 // 8, 640 // 8, self.selectedBB)
+                self.board[x][y].update(640 // 8, 640 // 8)
 
 
-class ConsoleReturn:
-    def __init__(self, error: bool, message: str):
-        self.error: bool = error
-        self.message: str = message
+def getOutput(string: str) -> list[str]:
+    global AI
+    AI.stdout.flush()
+    AI.stdin.write("\n".encode())
+    AI.stdin.write((string + "\n").encode())
+    AI.stdin.flush()
+    time.sleep(0.1)
+    l = []
+    while True:
+        output_line = AI.stdout.readline().decode()
+        if "-" in output_line:
+            break
+        l.append(output_line)
+    return l
 
+
+AIPATH = os.getcwd() + "\\.vscode\\a.exe"
 
 MANAGER: Manager
 IMAGES: Images
+AI = subprocess.Popen([AIPATH], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+AI.stdout.flush()
+AI.stdout.readline()
 
 
 def _exit(root, boardCanvas):
@@ -443,138 +391,13 @@ def _exit(root, boardCanvas):
         running = False
 
 
-def processCommand(string) -> ConsoleReturn:
-    global DEBUG_MODE, SHOWING_BB
-    string = string[2:].strip().split(" ")
-    if string[0] == "showBB":
-        if len(string) != 2:
-            return ConsoleReturn(True, "no bitboard specified")
-
-        bbi = {
-            "pawn": 1,
-            "knight": 2,
-            "bishop": 3,
-            "rook": 4,
-            "queen": 5,
-            "king": 6,
-            "empty": 0,
-            "all": 7,
-            "black": 9,
-            "white": 8,
-            "attacked": 10,
-            "none": None,
-        }
-
-        t = string[1].lower()
-        if t[-1] == "s":
-            t = t[:-1]
-
-        SHOWING_BB = bbi[t]
-
-        return ConsoleReturn(False, "")
-    elif string[0] == "debugmode":
-        if len(string) != 2:
-            return ConsoleReturn(True, "Invalid parameter")
-        if string[1].lower() in ["false", "0"]:
-            DEBUG_MODE = False
-        elif string[1].lower() in ["true", "1"]:
-            DEBUG_MODE = True
-        else:
-            return ConsoleReturn(True, "Invalid parameter")
-        return ConsoleReturn(False, "")
-    elif string[0] == "":
-        return ConsoleReturn(False, "")
-    else:
-        return ConsoleReturn(True, "Unknown Command")
-
-
-def typeToConsole(string):
-    global consoleTextInput
-    consoleTextInput.insert(tkinter.END, string)
-
-
-def getOutput(string: str) -> list[str]:
-    global AI, DEBUG_MODE
-    if DEBUG_MODE:
-        typeToConsole(f"GUI> {string}")
-    AI.stdout.flush()
-    AI.stdin.write("\n".encode())
-    AI.stdin.write((string + "\n").encode())
-    AI.stdin.flush()
-    time.sleep(0.1)
-    l = []
-
-    while True:
-        output_line = AI.stdout.readline().decode()
-        if "-" in output_line:
-            break
-        l.append(output_line)
-    if DEBUG_MODE:
-        if l != ["\r\n"]:
-            typeToConsole(f"Pioneer> ")
-            for o in l:
-                typeToConsole(o)
-    return l
-
-
-def appendToConsole(string: str):
-    global consoleText, consoleTextInput, consoleCursor
-
-    consoleTextInput.delete(tkinter.END)
-    consoleText[-1] = consoleText[-1] + string
-    consoleTextInput.insert(tkinter.END, consoleText[-1])
-    consoleTextInput.yview_moveto(1)
-
-
-def backspaceConsole(console: tkinter.Listbox):
-    global consoleText, consoleTextInput, consoleCursor
-    if len(consoleText[-1]) > 2:
-        console.delete(tkinter.END)
-        consoleText[-1] = consoleText[-1][:-1]
-        consoleTextInput.insert(tkinter.END, consoleText[-1])
-        consoleTextInput.yview_moveto(1)
-
-
-def incrementConsole(val: int):
-    global consoleText, consoleTextInput, consoleCursor
-
-    if consoleCursor >= 0 and val > 0 and consoleCursor < len(consoleText) - 1:
-        consoleCursor += 1
-        consoleText[-1] = consoleText[consoleCursor]
-        consoleTextInput.delete(tkinter.END)
-        consoleTextInput.insert(tkinter.END, consoleText[-1])
-
-    elif consoleCursor <= len(consoleText) - 1 and val < 0 and consoleCursor > 0:
-        consoleCursor -= 1
-        consoleText[-1] = consoleText[consoleCursor]
-        consoleTextInput.delete(tkinter.END)
-        consoleTextInput.insert(tkinter.END, consoleText[-1])
-
-
-def enterConsole(console: tkinter.Listbox):
-    global consoleText, consoleTextInput, consoleCursor
-    out = processCommand(consoleText[-1])
-    if out.message != "":
-        if out.error:
-            typeToConsole(f"Error: {out.message}")
-        else:
-            typeToConsole(out.message)
-    if consoleText[-1] != "> ":
-        consoleText.append("> ")
-        consoleCursor += 1
-    print(consoleTextInput.size())
-    consoleTextInput.insert(tkinter.END, consoleText[-1])
-    consoleTextInput.yview_moveto(1)
-
-
 def getConsoleOut(userIn, console: tkinter.Listbox):
     out = getOutput(userIn)
     out = "".join(out)
 
 
 def main():
-    global AI, MANAGER, IMAGES, consoleTextInput, root
-
+    global MANAGER, IMAGES
     root = tkinter.Tk()
     root.title("Chess")
     root.geometry("940x640")
@@ -582,54 +405,31 @@ def main():
     boardCanvas = tkinter.Canvas(root, width=640, height=640)
     boardCanvas.config(borderwidth=1, relief=tkinter.SUNKEN)
 
-    consoleFrame = tkinter.Frame(root, width=300, height=300, bg="black")
-    consoleFrame.config(borderwidth=1, relief=tkinter.SUNKEN)
+    consoleFrame = tkinter.Frame(root, width=300, height=300)
+    consoleFrame.config(bg="white", borderwidth=1, relief=tkinter.SUNKEN)
     consoleFrame.pack_propagate(False)
     consoleScroll = tkinter.Scrollbar(consoleFrame)
     consoleTextInput = tkinter.Listbox(consoleFrame)
     consoleTextInput.config(
+        bd=1,
         bg="black",
-        fg="white",
-        highlightcolor="black",
-        highlightthickness=0,
-        selectbackground="black",
-        activestyle=tkinter.NONE,
+        relief=tkinter.SUNKEN,
     )
-    consoleTextInput.config(yscrollcommand=consoleScroll.set)
-    consoleScroll.config(command=consoleTextInput.yview)
+    consoleTextInput.pack(side=tkinter.BOTTOM, fill=tkinter.X, expand=True)
     consoleScroll.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-    consoleTextInput.pack(fill=tkinter.BOTH, expand=True)
     consoleFrame.pack(side=tkinter.RIGHT, anchor=tkinter.S)
     boardCanvas.pack(side=tkinter.LEFT, anchor=tkinter.NW)
-
-    consoleText.append("> ")
-
-    consoleTextInput.insert(tkinter.END, "")
-
-    for x in [chr(i) for i in range(33, 127)]:
-        if x == ">":
-            consoleTextInput.bind("<greater>", lambda e, c=x: appendToConsole(c))
-        elif x == "<":
-            consoleTextInput.bind("<less>", lambda e, c=x: appendToConsole(c))
-        else:
-            consoleTextInput.bind(x, lambda e, c=x: appendToConsole(c))
-    consoleTextInput.bind("<space>", lambda x: appendToConsole(" "))
-    consoleTextInput.bind("<BackSpace>", lambda x: backspaceConsole(consoleTextInput))
-    consoleTextInput.bind("<Return>", lambda e: enterConsole(consoleTextInput))
-    consoleTextInput.bind("<Up>", lambda e: incrementConsole(-1))
-    consoleTextInput.bind("<Down>", lambda e: incrementConsole(1))
-    root.protocol("WM_DELETE_WINDOW", lambda: _exit(root, boardCanvas))
 
     IMAGES = Images()
     MANAGER = Manager(boardCanvas)
     MANAGER.getMoves()
-    getOutput("position fen " + startingFen)
     print("".join(getOutput("d")))
-    MANAGER.getMoves()
-
     root.bind("<Button-1>", MANAGER.board.onCLick)
-
-    appendToConsole("> ")
+    consoleTextInput.bind(
+        "<Return>",
+    )
+    root.bind("<Left>", lambda e: MANAGER.undoMove())
+    root.protocol("WM_DELETE_WINDOW", lambda: _exit(root, boardCanvas))
 
     while running:
         boardCanvas.delete("all")
