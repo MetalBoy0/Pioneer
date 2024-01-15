@@ -20,6 +20,7 @@ void setup()
     board = Board();
 
     // Preform several benchmarking tests here:
+    //cout << moodycamel::microbench([&]() {board.makeMove(board.getMove(10,18));},100, 10) << endl;
 }
 
 Move stringToMove(string moveString, Board board)
@@ -218,7 +219,7 @@ void parseDebug(istringstream &parser)
         }
         if (input == "attackedBB")
         {
-            Bitboard attackedBB = board.getAttackedBB();
+            Bitboard attackedBB = board.getAttackedBB(board.sideToMove);
             printBitboard(&attackedBB);
         }
     }

@@ -4,6 +4,7 @@
 #include <iostream>
 #include "move.h"
 #include "bitboard.h"
+#include "piece.h"
 using namespace std;
 
 struct indexList
@@ -23,6 +24,7 @@ public:
     bool isWhite;        // True if white, false if black
     int enPassantSquare; // -1 if no en passant square, otherwise the square
     int ply;             // number of moves since the start of the game
+    bool inCheck; // If if the current side to move is in check.
     indexList checks;    // Number of checks
 
     // Castling rights
@@ -43,8 +45,8 @@ public:
     Bitboard colorBB[9]; // Pieces by color 0 == White, 8 == None
     Bitboard pieceBB[7];
     Bitboard allPiecesBB;
-    template <Piece piece>
-    Bitboard getPieceBB(Board board);
+    Bitboard attackedBB[9];
+    Bitboard getPieceBB(Piece piece);
     Bitboard checkingBB;
 
     // History
@@ -60,7 +62,7 @@ public:
 
     indexList piecesAttackingSquare(int square); // Returns the number of enemy pieces attacking the square
     indexList getCheckers();
-    Bitboard getAttackedBB();
+    Bitboard getAttackedBB(Pieces::Color side);
 
     // Constructor
     Board(); // Default constructor

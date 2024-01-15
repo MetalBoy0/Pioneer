@@ -122,7 +122,6 @@ void initBBs()
         kingMoves[i] = bb;
     }
     // Setup canSeeBB
-
 }
 
 void printBitboard(Bitboard *bb)
@@ -174,28 +173,15 @@ Bitboard bitboardRay(int from, int to)
     return bb;
 }
 
-Bitboard sendRay(Bitboard *bb, Direction dir, int square)
+inline Bitboard sendRay(Bitboard *bb, Direction dir, int square)
 {
-    if (distToEdge[square][getDirIndex(dir)] == 0)
+    Bitboard obb = 0;
+    int current = square + dir;
+    while (distToEdge[current][getDirIndex(dir)] != 0 && !getBit(bb, current))
     {
-        return 0;
+        setBit(&obb, current);
+        current += dir;
     }
-    int to = square + dir;
-    if (square == to)
-    {
-        return 0ULL;
-    }
-    while (true)
-    {
-        if (distToEdge[to][dir] == 0)
-        {
-            return bitboardRay(square, to);
-        }
-        if (getBit(bb, to))
-        {
-
-            return bitboardRay(square, to);
-        }
-        to += dir;
-    }
+    setBit(&obb, current);
+    return obb;
 }

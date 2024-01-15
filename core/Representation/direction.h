@@ -26,6 +26,10 @@ enum Direction
     NNW = 15
 };
 
+const Direction bishopDirections[4] = {NE, SE, NW, SW};
+const Direction rookDirections[4] = {N, S, E, W};
+const Direction queenDirections[8] = {N, S, E, W, NE, SE, NW, SW};
+
 extern Direction directions[64][64];
 extern int16_t distToEdge[64][8];
 extern void initDirections();

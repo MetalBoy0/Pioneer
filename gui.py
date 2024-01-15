@@ -9,7 +9,7 @@ from PIL import Image, ImageTk
 root: tkinter.Tk
 consoleTextInput: tkinter.Listbox
 
-startingFen = "3B4/8/8/8/8/8/8/8"  # "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R"
+startingFen = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R"
 running = True
 consoleText = []
 consoleCursor = 0

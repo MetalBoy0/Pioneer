@@ -137,70 +137,64 @@ void Board::revertSetMove(Move move)
     clearBit(&pieceBB[Pieces::Empty], getFrom(move));
 }
 
-Bitboard Board::getAttackedBB()
+Bitboard Board::getPieceBB(Piece piece)
+{
+    return pieceBB[Pieces::getType(piece)] & colorBB[Pieces::getColor(piece)];
+}
+
+Bitboard Board::getAttackedBB(Pieces::Color side)
 {
     Bitboard attackedBB = 0;
-    // Pawns
-    Bitboard pawnBB = pieceBB[Pieces::Pawn] & colorBB[sideToMove];
+
+    Bitboard pawnBB = pieceBB[Pieces::Pawn] & colorBB[side];
     if (sideToMove == Pieces::White)
     {
-        Bitboard pawnsBB_ = pawnBB & (middleMask | fileMasks[0]);
-        attackedBB |= shift(&pawnsBB_, SE, 1) & ~colorBB[sideToMove];
-        pawnsBB_ = pawnBB & (middleMask | fileMasks[7]);
-        attackedBB |= shift(&pawnsBB_, SW, 1) & ~colorBB[sideToMove];
+        Bitboard pawnsBB_ = pawnBB & ~fileMasks[7];
+        attackedBB |= shift(&pawnsBB_, SE, 1);;
+        pawnsBB_ = pawnBB & ~fileMasks[0];
+        attackedBB |= shift(&pawnsBB_, SW, 1);
     }
     else
     {
-        Bitboard pawnsBB_ = pawnBB & (middleMask | fileMasks[0]);
-        attackedBB |= shift(&pawnsBB_, NE, 1) & ~colorBB[sideToMove];
-        pawnsBB_ = pawnBB & (middleMask | fileMasks[7]);
-        attackedBB |= shift(&pawnsBB_, NW, 1) & ~colorBB[sideToMove];
+        Bitboard pawnsBB_ = pawnBB & ~fileMasks[7];
+        attackedBB |= shift(&pawnsBB_, NE, 1);
+        pawnsBB_ = pawnBB & ~fileMasks[0];
+        attackedBB |= shift(&pawnsBB_, NW, 1);
     }
 
     // Knights
-    Bitboard knightBB = pieceBB[Pieces::Knight] & colorBB[sideToMove];
+    Bitboard knightBB = pieceBB[Pieces::Knight] & colorBB[side];
 
     while (knightBB)
     {
-        attackedBB |= knightMoves[popLSB(&knightBB)] & ~colorBB[sideToMove];
+        attackedBB |= getAttackBB<Pieces::Knight>(popLSB(&knightBB));
     }
 
     // Bishops and Queens
-    Bitboard bishopBB = (pieceBB[Pieces::Bishop] | pieceBB[Pieces::Queen]) & colorBB[sideToMove];
-    Direction bishopDirs[] = {NE, NW, SE, SW};
+
+    Bitboard noKings = allPiecesBB & ~pieceBB[Pieces::King];
+
+    Bitboard bishopBB = (pieceBB[Pieces::Bishop] | pieceBB[Pieces::Queen]) & colorBB[side];
 
     while (bishopBB)
     {
-        int bishopSquare = popLSB(&bishopBB);
-        for (int i = 0; i < 4; i++)
-        { // Might need to change bishopBB back to allpieceBB
-            // ! Possible error here that might be hidden by pieces being next to selected bishop
-            Bitboard bb = sendRay(&allPiecesBB, bishopDirs[i], bishopSquare) & ~colorBB[sideToMove];
-            attackedBB |= bb;
-        }
+        attackedBB |= getAttackBB<Pieces::Bishop>(popLSB(&bishopBB), &noKings);
     }
 
     // Rooks and Queens
-    Direction attackingDirSliding[] = {N, E, S, W};
-    Bitboard rookBB = (pieceBB[Pieces::Rook] | pieceBB[Pieces::Queen]) & colorBB[sideToMove];
+    Bitboard rookBB = (pieceBB[Pieces::Rook] | pieceBB[Pieces::Queen]) & colorBB[side];
+
     while (rookBB)
     {
-        int rookSquare = popLSB(&rookBB);
-        for (int i = 0; i < 4; i++)
-        {
-            //! Same thing as with the bishop error here (I think it has to do with it being next to the edge without being surrounded, probably an error with the send ray or BitboardRay function), look up ^
-            Bitboard bb = sendRay(&allPiecesBB, attackingDirSliding[i], rookSquare) & ~colorBB[sideToMove];
-            attackedBB |= bb;
-        }
+        attackedBB |= getAttackBB<Pieces::Rook>(popLSB(&rookBB), &noKings);
     }
 
     // Kings
-    Direction attackingDir[] = {N, E, S, W, NE, SE, SW, NW};
-    Bitboard kingBB = pieceBB[Pieces::King] & colorBB[sideToMove];
+    Bitboard kingBB = pieceBB[Pieces::King] & colorBB[side];
 
     for (int i = 0; i < 8; i++)
     {
-        Bitboard bb = shift(&kingBB, attackingDir[i], 1) & ~colorBB[sideToMove];
+        Bitboard bb = shift(&kingBB, queenDirections[i], 1) & ~colorBB[side];
         attackedBB |= bb;
     }
 
@@ -209,7 +203,7 @@ Bitboard Board::getAttackedBB()
 
 indexList Board::piecesAttackingSquare(int square)
 {
-    // The idea is to check the squares that the king can be attacked from
+    // The idea is toz check the squares that the king can be attacked from
     // If an enemy piece is on one of those squares, the king is in check
 
     // Get king square
@@ -392,15 +386,15 @@ void Board::makeMove(Move move)
     allPiecesBB = colorBB[Pieces::White] | colorBB[Pieces::Black];
 
     // Update checking bitboard
-    checks = getCheckers();
-    if (checks.count == 1)
+
+    attackedBB[sideToMove] = getAttackedBB(sideToMove);
+    attackedBB[otherSide] = getAttackedBB(otherSide);
+
+    inCheck = getBit(&attackedBB[otherSide], __builtin_ctzll(pieceBB[Pieces::King | sideToMove]));
+
+    if (inCheck)
     {
-        Bitboard kingBB = colorBB[sideToMove] & pieceBB[Pieces::King];
-        checkingBB = bitboardRay(checks.index[0], getLSB(&kingBB)) & allPiecesBB;
-    }
-    else
-    {
-        checkingBB = 0xFFFFFFFFFFFFFFFFULL;
+        
     }
 }
 
@@ -443,6 +437,11 @@ void Board::undoMove()
     // Update the board
     revertSetMove(pastMoves[ply]);
     allPiecesBB = colorBB[0] | colorBB[8]; // update all pieces bitboard
+
+    // Update checking bitboard
+
+    attackedBB[sideToMove] = getAttackedBB(sideToMove);
+    attackedBB[otherSide] = getAttackedBB(otherSide);
 }
 
 Move Board::getMove(int from, int to, Piece promotion, bool isCastle)
@@ -488,6 +487,8 @@ Board::Board()
     loadFEN(startFen);
     initDirections();
     initBBs();
+    attackedBB[sideToMove] = getAttackedBB(sideToMove);
+    attackedBB[otherSide] = getAttackedBB(otherSide);
     assert(~pieceBB[0] == allPiecesBB);
 }
 

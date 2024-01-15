@@ -1,7 +1,7 @@
 #ifndef BITBOARD_H
 #define BITBOARD_H
 #include "direction.h"
-
+#include "piece.h"
 typedef unsigned long long Bitboard;
 
 // Some helpful bitboard masks
@@ -9,7 +9,7 @@ typedef unsigned long long Bitboard;
 const Bitboard emptyBB = 0ull;
 const Bitboard fullBB = ~emptyBB;
 
-//castling masks
+// castling masks
 extern const Bitboard shortCastle[9];
 extern const Bitboard longCastle[9];
 
@@ -34,7 +34,7 @@ extern Bitboard canSeeBB[64];
 extern void printBitboard(Bitboard *bb);
 extern Bitboard bitboardRay(Direction dir, int square);
 extern Bitboard bitboardRay(int from, int to);
-extern Bitboard sendRay(Bitboard *bb, Direction dir, int square);
+extern inline Bitboard sendRay(Bitboard *bb, Direction dir, int square);
 extern void initBBs();
 namespace
 {
@@ -90,6 +90,63 @@ namespace
     Bitboard shift(Bitboard *bb, Direction dir, int amount)
     {
         return dir > 0 ? *bb << (dir * amount) : *bb >> (-dir * amount);
+    }
+
+    template <Piece>
+    Bitboard getAttackBB(int s);
+    template <Piece>
+    Bitboard getAttackBB(int s, Bitboard *squares);
+
+    template <>
+    Bitboard getAttackBB<Pieces::Pawn>(int s)
+    {
+    }
+
+    template <>
+    Bitboard getAttackBB<Pieces::Knight>(int s)
+    {
+        return knightMoves[s];
+    }
+
+    template <>
+    Bitboard getAttackBB<Pieces::Bishop>(int s, Bitboard *squares)
+    {
+        Bitboard attackBB = 0;
+        for (auto x : bishopDirections)
+        {
+            if (distToEdge[s][getDirIndex(x)] == 0)
+            {
+                continue;
+            }
+            attackBB |= sendRay(squares, x, s);
+        }
+        return attackBB;
+    }
+
+    template <>
+    Bitboard getAttackBB<Pieces::Rook>(int s, Bitboard *squares)
+    {
+        Bitboard attackBB = 0;
+        for (auto x : rookDirections)
+        {
+            if (distToEdge[s][getDirIndex(x)] == 0)
+            {
+                continue;
+            }
+            attackBB |= sendRay(squares, x, s);
+        }
+        return attackBB;
+    }
+
+    template <>
+    Bitboard getAttackBB<Pieces::Queen>(int s, Bitboard *squares)
+    {
+    }
+
+    template <>
+    Bitboard getAttackBB<Pieces::King>(int s)
+    {
+        return kingMoves[s];
     }
 }
 #endif

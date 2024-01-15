@@ -235,10 +235,10 @@ void generateCastles(Board *board, MoveList *MoveList)
 {
     // TODO: King in check
     // Pieces in the way
-
+    Bitboard attacked = board->attackedBB[board->otherSide];
     if ((shortCastle[board->sideToMove] & board->allPiecesBB) == 0 && board->whiteCanCastleKingSide && ~board->checkingBB == 0)
     {
-        if (board->isWhite && board->piecesAttackingSquare(61).count == 0 && board->piecesAttackingSquare(62).count == 0)
+        if (!getBit(&attacked, 61) && !getBit(&attacked, 62))
         {
             appendMove(MoveList, board->getMove(60, 62, Pieces::Empty, true));
         }
@@ -251,17 +251,13 @@ void generateKingMoves(Board *board, MoveList *MoveList)
     while (king)
     {
         int kingIndex = popLSB(&king);
+        Bitboard attacked = board->attackedBB[board->otherSide];
         Bitboard moves = kingMoves[kingIndex];
-        moves &= board->colorBB[board->otherSide] | board->pieceBB[0];
+        moves &= (board->colorBB[board->otherSide] | board->pieceBB[0]) & ~attacked;
         while (moves)
         {
             int to = popLSB(&moves);
-            // TODO: Can make another function more specialized for this, such as a function that checks if a piece is attacking a square
-            // TODO: Instead of a function that checks how many pieces are attacking a square
-            if (board->piecesAttackingSquare(to).count == 0)
-            {
-                appendMove(MoveList, board->getMove(kingIndex, to));
-            }
+            appendMove(MoveList, board->getMove(kingIndex, to));
         }
     }
 }
