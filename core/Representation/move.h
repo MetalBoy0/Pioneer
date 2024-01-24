@@ -16,7 +16,7 @@ typedef uint32_t Move;
 
 constexpr bool isCapture(Move move)
 {
-    return (move & 0x1000) != 0;
+    return (move >> 18 & 1) != 0;
 }
 
 constexpr bool isCastle(Move move)

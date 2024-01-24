@@ -3,10 +3,57 @@
 #include "../../uci.h"
 #include <cassert>
 
-int perft(Board *board, unsigned int depth, unsigned int ply)
+struct BoardSnapshot
+{
+    Bitboard pieceBB[7];
+    Bitboard colorBB[9];
+    Bitboard checkingBB;
+    Piece board[64];
+};
+
+bool isSnapshotBoard(BoardSnapshot *snapshot, Board *board)
+{
+    for (int i = 0; i < 64; i++)
+    {
+        if (snapshot->board[i] != board->board[i])
+        {
+            return false;
+        }
+    }
+    for (int i = 0; i < 7; i++)
+    {
+        if (snapshot->pieceBB[i] != board->pieceBB[i])
+        {
+            return false;
+        }
+    }
+    if (snapshot->colorBB[0] != board->colorBB[0] || snapshot->colorBB[8] != board->colorBB[8])
+    {
+        return false;
+    }
+    return true;
+}
+
+unsigned int perft(Board *board, unsigned int depth, unsigned int ply)
 {
     Bitboard origin = board->pieceBB[Pieces::Empty];
     MoveList moveList;
+    BoardSnapshot snapshot;
+
+    for (int i = 0; i < 64; i++)
+    {
+        snapshot.board[i] = board->board[i];
+    }
+    for (int i = 0; i < 7; i++)
+    {
+        snapshot.pieceBB[i] = board->pieceBB[i];
+        
+    }
+    for (int i = 0; i < 9; i++)
+    {
+        snapshot.colorBB[i] = board->colorBB[i];
+    }
+    snapshot.checkingBB = board->checkingBB;
     generateMoves(board, &moveList);
     if (depth == 1)
     {
@@ -16,43 +63,37 @@ int perft(Board *board, unsigned int depth, unsigned int ply)
     {
         return 1;
     }
-    int nodes = 0;
+    unsigned int nodes = 0;
 
     // DEBUG
 
     for (int i = 0; i < moveList.count; i++)
     {
-        if (origin != board->pieceBB[Pieces::Empty] && false)
+        if (!isSnapshotBoard(&snapshot, board))
         {
-            cout << "ERROR: Bitboards changed" << endl;
-            cout << "Move: " << moveToString(moveList.moves[i - 1]) << endl;
-            cout << "Index: " << i - 1 << endl;
-            cout << "Depth: " << depth << endl;
-            cout << "Ply: " << ply << endl;
-            cout << "Origin: " << origin << endl;
-            cout << "Current: " << board->pieceBB[Pieces::Empty] << endl;
-            assert(false);
+            cout << "ERROR: Snapshot board does not match current board\n"
+                 << endl;
+            cout << "Depth: " << depth << " On move: " << moveToString(moveList.moves[i - 1]) << " Ply: " << ply << endl;
         }
         board->makeMove(moveList.moves[i]);
         nodes += perft(board, depth - 1, ply + 1);
         board->undoMove();
     }
 
-    
     return nodes;
 }
 
-int startPerft(Board board, unsigned int depth)
+unsigned int startPerft(Board board, unsigned int depth)
 {
     MoveList moveList;
     generateMoves(&board, &moveList);
 
-    int nodes = 0;
+    unsigned int nodes = 0;
 
     for (int i = 0; i < moveList.count; i++)
     {
         board.makeMove(moveList.moves[i]);
-        int c = perft(&board, depth - 1, 1);
+        unsigned int c = perft(&board, depth - 1, 1);
         board.undoMove();
         nodes += c;
         cout << moveToString(moveList.moves[i]) << ": " << c << "\n";

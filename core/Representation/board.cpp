@@ -16,11 +16,8 @@ void appendBB(indexList *list, Bitboard BB)
     while (BB)
     {
         int index = popLSB(&BB);
-        if (BB & 1)
-        {
-            list->index[list->count] = index;
-            list->count++;
-        }
+        list->index[list->count] = index;
+        list->count++;
     }
 }
 
@@ -49,9 +46,10 @@ void Board::setupBitboards()
     allPiecesBB = colorBB[0] | colorBB[8];
 }
 
-void Board::loadFEN(string fen)
+void Board::loadFEN(string fen, bool isWhite, bool whiteCanCastleKingSide, bool whiteCanCastleQueenSide, bool blackCanCastleKingSide, bool blackCanCastleQueenSide, int enPassantSquare)
 {
     int current = 0;
+
     for (auto x : fen)
     {
         if (x == '/')
@@ -73,7 +71,17 @@ void Board::loadFEN(string fen)
             current++;
         }
     }
+    sideToMove = isWhite ? Pieces::White : Pieces::Black;
+    otherSide = isWhite ? Pieces::Black : Pieces::White;
+    this->blackCanCastleKingSide = blackCanCastleKingSide;
+    this->blackCanCastleQueenSide = blackCanCastleQueenSide;
+    this->whiteCanCastleKingSide = whiteCanCastleKingSide;
+    this->whiteCanCastleQueenSide = whiteCanCastleQueenSide;
+    enPassantSquare = enPassantSquare;
     setupBitboards();
+    attackedBB[sideToMove] = getAttackedBB(sideToMove);
+    attackedBB[otherSide] = getAttackedBB(otherSide);
+    inCheck = attackedBB[otherSide] & pieceBB[Pieces::King] & colorBB[sideToMove];
 }
 // Set's a move on the board and updates the bitboards
 void Board::setMove(Move move)
@@ -81,60 +89,71 @@ void Board::setMove(Move move)
     int from = getFrom(move);
     int to = getTo(move);
     Piece movePiece = board[from];
-    Piece capturedPiece = board[to];
+    Piece capturedPiece = getCapturedPiece(move);
+
+    Pieces::Color side = Pieces::getColor(movePiece);
+    Pieces::PieceType pieceType = Pieces::getType(movePiece);
+    Pieces::Color capturedSide = Pieces::getColor(capturedPiece);
+    Pieces::PieceType capturedType = Pieces::getType(capturedPiece);
 
     // Update array
     board[from] = Pieces::Empty;
     board[to] = movePiece;
 
-    // Update bitboards
-    // Remove captured piece
-    // it doesn't matter if we remove an empty square because it will be updated anyway
-    clearBit(&pieceBB[Pieces::getType(capturedPiece)], to);
-    // It does matter if we remove a piece from the colorBB without checking if it is a capture
+    // Remove piece from 'from' square
+    // We need to first clear the piece from Color BB and Piece BB
+    clearBit(&colorBB[side], from);
+    clearBit(&pieceBB[pieceType], from);
+    setBit(&pieceBB[Pieces::Empty], from);
+
+    // Clear the captured piece
+    clearBit(&pieceBB[capturedType], to);
     if (capturedPiece != Pieces::Empty)
     {
-        clearBit(&colorBB[Pieces::getColor(capturedPiece)], getTo(move));
+        clearBit(&colorBB[capturedSide], to);
     }
-    // Add piece to new square
-    setBit(&pieceBB[Pieces::getType(movePiece)], to);
-    setBit(&colorBB[Pieces::getColor(movePiece)], to);
 
-    // Remove piece from old square
-
-    clearBit(&colorBB[Pieces::getColor(movePiece)], from);
-    clearBit(&pieceBB[Pieces::getType(movePiece)], from);
-
-    // Add old square to empty squares bitboard
-    setBit(&pieceBB[Pieces::Empty], from);
+    // Set it to the 'to' square
+    // We need to first set the bit to colorBB and Piece BB
+    setBit(&colorBB[side], to);
+    setBit(&pieceBB[pieceType], to);
 }
 
 void Board::revertSetMove(Move move)
 {
-    Piece movePiece = board[getTo(move)];
+    int from = getFrom(move);
+    int to = getTo(move);
+    Piece movePiece = board[to];
     Piece capturedPiece = getCapturedPiece(move);
 
+    Pieces::Color side = Pieces::getColor(movePiece);
+    Pieces::PieceType pieceType = Pieces::getType(movePiece);
+    Pieces::Color capturedSide = Pieces::getColor(capturedPiece);
+    Pieces::PieceType capturedType = Pieces::getType(capturedPiece);
+
     // Update array
-    board[getFrom(move)] = movePiece;
-    board[getTo(move)] = capturedPiece;
+    board[from] = movePiece;
+    board[to] = capturedPiece;
 
-    // Update bitboards
-    // Remove captured piece
-    setBit(&pieceBB[Pieces::getType(capturedPiece)], getTo(move));
-    if (isCapture(move))
+    // Add piece to 'from' square
+    // We need to first set the piece to Color BB and Piece BB
+
+    clearBit(&colorBB[side], to);
+    clearBit(&pieceBB[pieceType], to);
+
+    // Set the captured piece
+    setBit(&pieceBB[capturedType], to);
+    if (capturedPiece != Pieces::Empty)
     {
-        setBit(&colorBB[Pieces::getColor(capturedPiece)], getTo(move));
+        setBit(&colorBB[capturedSide], to);
     }
-    // Add movepiece to original square
-    setBit(&pieceBB[Pieces::getType(movePiece)], getFrom(move));
-    setBit(&colorBB[Pieces::getColor(movePiece)], getFrom(move));
 
-    // Remove movepiece from new square
-    clearBit(&colorBB[Pieces::getColor(movePiece)], getTo(move));
-    clearBit(&pieceBB[Pieces::getType(movePiece)], getTo(move));
+    // Clear it from the 'to' square
+    // We need to first clear the bit from colorBB and Piece BB
 
-    // Remove old square from empty squares bitboard
-    clearBit(&pieceBB[Pieces::Empty], getFrom(move));
+    setBit(&colorBB[side], from);
+    setBit(&pieceBB[pieceType], from);
+    clearBit(&pieceBB[Pieces::Empty], from);
 }
 
 Bitboard Board::getPieceBB(Piece piece)
@@ -147,10 +166,11 @@ Bitboard Board::getAttackedBB(Pieces::Color side)
     Bitboard attackedBB = 0;
 
     Bitboard pawnBB = pieceBB[Pieces::Pawn] & colorBB[side];
-    if (sideToMove == Pieces::White)
+    if (side == Pieces::White)
     {
         Bitboard pawnsBB_ = pawnBB & ~fileMasks[7];
-        attackedBB |= shift(&pawnsBB_, SE, 1);;
+        attackedBB |= shift(&pawnsBB_, SE, 1);
+        ;
         pawnsBB_ = pawnBB & ~fileMasks[0];
         attackedBB |= shift(&pawnsBB_, SW, 1);
     }
@@ -172,7 +192,7 @@ Bitboard Board::getAttackedBB(Pieces::Color side)
 
     // Bishops and Queens
 
-    Bitboard noKings = allPiecesBB & ~pieceBB[Pieces::King];
+    Bitboard noKings = allPiecesBB & ~(pieceBB[Pieces::King] & colorBB[Pieces::invertColor(side)]);
 
     Bitboard bishopBB = (pieceBB[Pieces::Bishop] | pieceBB[Pieces::Queen]) & colorBB[side];
 
@@ -191,12 +211,8 @@ Bitboard Board::getAttackedBB(Pieces::Color side)
 
     // Kings
     Bitboard kingBB = pieceBB[Pieces::King] & colorBB[side];
-
-    for (int i = 0; i < 8; i++)
-    {
-        Bitboard bb = shift(&kingBB, queenDirections[i], 1) & ~colorBB[side];
-        attackedBB |= bb;
-    }
+    int kingSquare = getLSB(&kingBB);
+    attackedBB |= getAttackBB<Pieces::King>(kingSquare);
 
     return attackedBB;
 }
@@ -390,12 +406,7 @@ void Board::makeMove(Move move)
     attackedBB[sideToMove] = getAttackedBB(sideToMove);
     attackedBB[otherSide] = getAttackedBB(otherSide);
 
-    inCheck = getBit(&attackedBB[otherSide], __builtin_ctzll(pieceBB[Pieces::King | sideToMove]));
-
-    if (inCheck)
-    {
-        
-    }
+    inCheck = attackedBB[otherSide] & pieceBB[Pieces::King] & colorBB[sideToMove];
 }
 
 void Board::undoMove()
@@ -442,6 +453,47 @@ void Board::undoMove()
 
     attackedBB[sideToMove] = getAttackedBB(sideToMove);
     attackedBB[otherSide] = getAttackedBB(otherSide);
+
+    inCheck = attackedBB[otherSide] & pieceBB[Pieces::King] & colorBB[sideToMove];
+}
+
+Direction Board::isPinned(int square)
+{
+    // Get king square
+    Bitboard kingBB = colorBB[sideToMove] & pieceBB[Pieces::King];
+    assert(kingBB != 0);
+    int kingSquare = getLSB(&kingBB);
+
+    // Get all enemy pieces
+    Bitboard enemyPieces = colorBB[otherSide];
+
+    Direction dir = getDirectionBetween(kingSquare, square);
+    if (dir != Direction::NULLDIR || NNW || NNE || SSE || SSW || NWW || NEE || SEE || SWW)
+    {
+        Bitboard checkBB = sendRay(&allPiecesBB, dir, kingSquare);
+        // If there is not a piece in between the king and the square
+        if (checkBB & getBitboardFromSquare(square))
+        {
+            // If direction is diagonal
+            if (dir == NW || dir == NE || dir == SW || dir == SE)
+            {
+                Bitboard attackers = sendRay(&allPiecesBB, dir, square);
+                if (attackers & ((pieceBB[Pieces::Bishop] | pieceBB[Pieces::Queen]) & enemyPieces))
+                {
+                    return dir;
+                }
+            }
+            if (dir == N || dir == E || dir == S || dir == W)
+            {
+                Bitboard attackers = sendRay(&allPiecesBB, dir, square);
+                if (attackers & ((pieceBB[Pieces::Rook] | pieceBB[Pieces::Queen]) & enemyPieces))
+                {
+                    return dir;
+                }
+            }
+        }
+    }
+    return Direction::NULLDIR;
 }
 
 Move Board::getMove(int from, int to, Piece promotion, bool isCastle)
@@ -460,7 +512,7 @@ Move Board::getMove(int from, int to, Piece promotion, bool isCastle)
     // Set isPromote
     move |= promotion > 0 << 17;
     // Set isCapture
-    move |= getBit(&allPiecesBB, to) << 18;
+    move |= (board[to] != 0) << 18;
     // Set isCastle
     move |= isCastle << 19;
     // Set captured piece
@@ -470,7 +522,7 @@ Move Board::getMove(int from, int to, Piece promotion, bool isCastle)
 
 bool Board::isEnPassant(Move move)
 {
-    return getTo(move) == enPassantSquare;
+    return getTo(move) == enPassantSquare && Pieces::getType(board[getFrom(move)]) == Pieces::Pawn;
 }
 
 Board::Board()
@@ -484,7 +536,7 @@ Board::Board()
     whiteCanCastleQueenSide = true;
     enPassantSquare = -1;
     isWhite = Pieces::isWhite(sideToMove);
-    loadFEN(startFen);
+    loadFEN(startFen, isWhite, whiteCanCastleKingSide, whiteCanCastleQueenSide, blackCanCastleKingSide, blackCanCastleQueenSide, enPassantSquare);
     initDirections();
     initBBs();
     attackedBB[sideToMove] = getAttackedBB(sideToMove);

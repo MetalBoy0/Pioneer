@@ -30,6 +30,7 @@ extern Bitboard kingMoves[64];
 extern Bitboard diagonalsBB[64];
 extern Bitboard straightsBB[64];
 extern Bitboard canSeeBB[64];
+extern Bitboard dirToBB[8][64];
 
 extern void printBitboard(Bitboard *bb);
 extern Bitboard bitboardRay(Direction dir, int square);
@@ -43,6 +44,8 @@ namespace
     {
         return 1ull << square;
     }
+
+    
 
     // Returns a bool if there is a 1 at the specified square else 0
     bool getBit(Bitboard *bitboard, int square)

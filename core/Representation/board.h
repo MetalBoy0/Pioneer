@@ -18,14 +18,14 @@ extern void appendBB(indexList *list, Bitboard BB);
 class Board
 {
 public:
-    int board[64];            // 64 board array
+    Piece board[64];          // 64 board array
     Pieces::Color sideToMove; // Color of side to move
     Pieces::Color otherSide;
     bool isWhite;        // True if white, false if black
     int enPassantSquare; // -1 if no en passant square, otherwise the square
     int ply;             // number of moves since the start of the game
-    bool inCheck; // If if the current side to move is in check.
-    indexList checks;    // Number of checks
+    bool inCheck;        // If if the current side to move is in check.
+    indexList checkers;    // Number of checks
 
     // Castling rights
     bool whiteCanCastleKingSide;
@@ -39,6 +39,7 @@ public:
     void setMove(Move move);
     void revertSetMove(Move move);
     bool isEnPassant(Move move);
+    Direction isPinned(int square);
     Move getMove(int from, int to, Piece piece = Pieces::Empty, bool isCastle = false);
 
     // Bitboards
@@ -55,10 +56,10 @@ public:
 
     // Utils
 
-    void printBoard();        // Print the board
-    void loadFEN(string fen); // Load a fen string
-    void clearBoard();        // Clear the board
-    void setupBitboards();    // Set up the bitboards
+    void printBoard();                                                                                                                                                                 // Print the board
+    void loadFEN(string fen, bool isWhite, bool whiteCanCastleKingSide, bool whiteCanCastleQueenSide, bool blackCanCastleKingSide, bool blackCanCastleQueenSide, int enPassantSquare); // Load a fen string
+    void clearBoard();                                                                                                                                                                 // Clear the board
+    void setupBitboards();                                                                                                                                                             // Set up the bitboards
 
     indexList piecesAttackingSquare(int square); // Returns the number of enemy pieces attacking the square
     indexList getCheckers();

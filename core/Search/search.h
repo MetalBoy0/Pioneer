@@ -3,6 +3,6 @@
 
 #include "..\Representation\board.h"
 
-extern int startPerft(Board board, unsigned int depth);
+extern unsigned int startPerft(Board board, unsigned int depth);
 extern Move startSearch(Board *board, unsigned int depth);
 #endif

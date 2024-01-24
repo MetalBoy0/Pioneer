@@ -50,7 +50,8 @@
         "string_view": "cpp",
         "ratio": "cpp",
         "chrono": "cpp",
-        "ctime": "cpp"
+        "ctime": "cpp",
+        "cstring": "cpp"
     }
     
 }

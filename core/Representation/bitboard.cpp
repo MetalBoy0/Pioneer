@@ -28,16 +28,18 @@ const Bitboard middleMask = fullBB ^ (fileMasks[0] | fileMasks[7]);
 const Bitboard shortCastle[9] = {
     0b11ull << 61,
     0, 0, 0, 0, 0, 0, 0,
-    0b11 << 1};
+    0b1100000};
 
 const Bitboard longCastle[9] = {
     0b1110000ull << 56,
     0, 0, 0, 0, 0, 0, 0,
-    0b1110000};
+    0b1110};
 
 Bitboard knightMoves[64];
 
 Bitboard kingMoves[64];
+
+Bitboard dirToBB[8][64];
 
 void initBBs()
 {
@@ -121,7 +123,16 @@ void initBBs()
         }
         kingMoves[i] = bb;
     }
-    // Setup canSeeBB
+    // Setup dirToBB
+    Direction queenDirectionsOpp[8] = {S, N, W, E, SW, NW, SE, NE};
+    for (int i = 0; i < 64; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            Bitboard bb = 0ULL;
+            dirToBB[j][i] = sendRay(&bb, queenDirections[j], i) | sendRay(&bb, queenDirectionsOpp[j], i);
+        }
+    }
 }
 
 void printBitboard(Bitboard *bb)
@@ -176,6 +187,10 @@ Bitboard bitboardRay(int from, int to)
 inline Bitboard sendRay(Bitboard *bb, Direction dir, int square)
 {
     Bitboard obb = 0;
+    if (distToEdge[square][getDirIndex(dir)] == 0)
+    {
+        return obb;
+    }
     int current = square + dir;
     while (distToEdge[current][getDirIndex(dir)] != 0 && !getBit(bb, current))
     {

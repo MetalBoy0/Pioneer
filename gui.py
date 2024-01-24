@@ -9,7 +9,7 @@ from PIL import Image, ImageTk
 root: tkinter.Tk
 consoleTextInput: tkinter.Listbox
 
-startingFen = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R"
+startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w kqKQ -" # "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R"
 running = True
 consoleText = []
 consoleCursor = 0
@@ -298,7 +298,8 @@ class Board:
     def loadFen(self, fen: str):
         self.fen = fen
         i = 0
-        for f in fen:
+        fen = fen.split(" ")
+        for f in fen[0]:
             if f == "/":
                 continue
             if f.isdigit():
@@ -325,6 +326,7 @@ class Board:
             elif f.lower() == "k":
                 self.board[7 - x][7 - y].piece = color | K
             i += 1
+        self.isWhiteTurn = fen[1] == "w"
 
     def getBB(self, i):
         o = getOutput("debug print bitboard")

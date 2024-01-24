@@ -32,6 +32,8 @@ int getDirIndex(Direction dir)
     }
 }
 
+
+
 // Init the direction array
 void initDirections()
 {

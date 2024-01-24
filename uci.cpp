@@ -20,7 +20,7 @@ void setup()
     board = Board();
 
     // Preform several benchmarking tests here:
-    //cout << moodycamel::microbench([&]() {board.makeMove(board.getMove(10,18));},100, 10) << endl;
+    // cout << moodycamel::microbench([&]() {board.makeMove(board.getMove(10,18));},100, 10) << endl;
 }
 
 Move stringToMove(string moveString, Board board)
@@ -96,12 +96,47 @@ void parsePosition(istringstream &parser)
 
     if (input == "startpos")
     {
-        board.loadFEN(startFen);
+        board.loadFEN(startFen, true, true, true, true, true, -1);
     }
     else if (input == "fen")
     {
+
         parser >> input;
-        board.loadFEN(input);
+        string fen = input;
+        parser >> input;
+        bool isWhite = input == "w";
+        parser >> input;
+        bool whiteCanCastleKingSide = false;
+        bool whiteCanCastleQueenSide = false;
+        bool blackCanCastleKingSide = false;
+        bool blackCanCastleQueenSide = false;
+
+        for (auto x : input)
+        {
+            if (x == 'Q')
+            {
+                whiteCanCastleQueenSide = true;
+            }
+            else if (x == 'K')
+            {
+                whiteCanCastleKingSide = true;
+            }
+            else if (x == 'q')
+            {
+                blackCanCastleQueenSide = true;
+            }
+            else if (x == 'k')
+            {
+                blackCanCastleKingSide = true;
+            }
+        }
+        parser >> input;
+        int enPassantSquare = -1;
+        if (input != "-")
+        {
+            enPassantSquare = ((input[0] - 'a') + (8 * (7 - (input[1] - '1'))));
+        }
+        board.loadFEN(fen, isWhite, whiteCanCastleKingSide, whiteCanCastleQueenSide, blackCanCastleKingSide, blackCanCastleQueenSide, -1);
     }
 }
 
@@ -168,7 +203,7 @@ void parseGo(istringstream &parser)
     {
         // Perft search
         auto start = chrono::high_resolution_clock::now();
-        int perft = startPerft(board, depthValue);
+        unsigned int perft = startPerft(board, depthValue);
         auto stop = chrono::high_resolution_clock::now();
         cout << "Perft search to depth: " << depthValue << "\n"
              << "Took " << chrono::duration_cast<chrono::milliseconds>(stop - start).count() << "ms\n";

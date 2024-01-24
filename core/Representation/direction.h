@@ -42,6 +42,11 @@ namespace
         return directions[from][to];
     }
 
+    Direction invertDirection(Direction dir)
+    {
+        return (Direction)(-dir);
+    }
+
     bool onEdge(int to)
     {
         return (!distToEdge[to][0] || !distToEdge[to][1] || !distToEdge[to][2] ||

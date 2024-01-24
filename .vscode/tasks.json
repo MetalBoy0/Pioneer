@@ -6,6 +6,7 @@
             "command": "C:\\msys64\\mingw64\\bin\\g++.exe",
             "args": [
                 "-fdiagnostics-color=always",
+                "-o3",
                 "-g",
                 "${workspaceFolder}\\main.cpp",
                 "${workspaceFolder}\\uci.cpp",

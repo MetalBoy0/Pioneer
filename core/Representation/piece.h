@@ -35,6 +35,8 @@ namespace Pieces
         Black = 8
     };
 
+
+
     constexpr PieceType getType(Piece piece)
     {
         return static_cast<PieceType>(piece & 7);
