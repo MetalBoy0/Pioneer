@@ -54,7 +54,14 @@ void generateCheckBB(Board *board)
             {
                 continue;
             }
-
+            if (Pieces::getType(board->board[piece]) == Pieces::Bishop && (dir == N || dir == S || dir == E || dir == W))
+            {
+                continue;
+            }
+            if (Pieces::getType(board->board[piece]) == Pieces::Rook && (dir == NE || dir == NW || dir == SE || dir == SW))
+            {
+                continue;
+            }
             // Check if there is a piece in between the rook and the king
             Bitboard between = sendRay(&board->allPiecesBB, dir, piece);
             if (between & king)
@@ -67,7 +74,7 @@ void generateCheckBB(Board *board)
                 }
             }
         }
-        if (board->checkers.count == 1 && board->board[board->checkers.index[0]] != Pieces::Knight)
+        if (board->checkers.count == 1 && Pieces::getType(board->board[board->checkers.index[0]]) != Pieces::Knight)
         {
             board->checkingBB = sendRay(&board->allPiecesBB, getDirectionBetween(kingIndex, board->checkers.index[0]), kingIndex);
         }
@@ -107,7 +114,7 @@ void appendMove(MoveList *moveList, Move move)
     moveList->count++;
 }
 
-void generatePawnMoves(Board *board, MoveList *MoveList, bool onlyCaptures)
+void generatePawnMoves(Board *board, MoveList *MoveList)
 {
     // Shift the pawn BBs to get the moves
     Bitboard kingBB = board->pieceBB[Pieces::King] & board->colorBB[board->sideToMove];
@@ -117,17 +124,15 @@ void generatePawnMoves(Board *board, MoveList *MoveList, bool onlyCaptures)
     Bitboard captureE = 0;
     Bitboard captureW = 0;
 
-    if (!onlyCaptures)
+    if (board->sideToMove == Pieces::Color::White)
     {
-        if (board->sideToMove == Pieces::Color::White)
-        {
-            moves |= shift<S>(&pawns);
-        }
-        else
-        {
-            moves |= shift<N>(&pawns);
-        }
+        moves |= shift<S>(&pawns);
     }
+    else
+    {
+        moves |= shift<N>(&pawns);
+    }
+
     if (board->sideToMove == Pieces::Color::White)
     {
         captureE |= shift<SE>(&pawns);
@@ -195,7 +200,7 @@ void generatePawnMoves(Board *board, MoveList *MoveList, bool onlyCaptures)
         }
         // Double pawn push
 
-        if (indexToRank(from) == 1 || indexToRank(from) == 6)
+        if ((indexToRank(from) == 1 && board->isWhite) || (indexToRank(from) == 6 && !board->isWhite))
         {
             int to2 = to - (board->sideToMove == Pieces::Color::White ? 8 : -8);
             if (!(getBitboardFromSquare(to2) & board->checkingBB))
@@ -350,7 +355,7 @@ void generatePawnMoves(Board *board, MoveList *MoveList, bool onlyCaptures)
     }
 }
 
-void generateKnightMoves(Board *board, MoveList *moveList, bool onlyCaptures)
+void generateKnightMoves(Board *board, MoveList *moveList)
 {
     Bitboard knights = board->pieceBB[Pieces::Knight] & board->colorBB[board->sideToMove];
     while (knights)
@@ -363,7 +368,7 @@ void generateKnightMoves(Board *board, MoveList *moveList, bool onlyCaptures)
         }
 
         Bitboard moves = knightMoves[knight] & board->checkingBB;
-        moves &= board->colorBB[board->otherSide] | (onlyCaptures ? 0 : board->pieceBB[0]);
+        moves &= board->colorBB[board->otherSide] | board->pieceBB[0];
         while (moves)
         {
             int to = popLSB(&moves);
@@ -372,7 +377,7 @@ void generateKnightMoves(Board *board, MoveList *moveList, bool onlyCaptures)
     }
 }
 
-void generateSlidingRays(Board *board, MoveList *moveList, int from, int startDir, int endDir, bool onlyCaptures)
+void generateSlidingRays(Board *board, MoveList *moveList, int from, int startDir, int endDir)
 {
     const Direction directions[8] = {N, S, E, W, NE, NW, SE, SW};
     Direction pin = board->isPinned(from);
@@ -434,7 +439,7 @@ void generateSlidingRays(Board *board, MoveList *moveList, int from, int startDi
     }
 }
 
-void generateSlidingMoves(Board *board, MoveList *movelist, bool onlyCaptures)
+void generateSlidingMoves(Board *board, MoveList *movelist)
 {
     Bitboard rooks = board->pieceBB[Pieces::Rook] & board->colorBB[board->sideToMove];
     Bitboard bishops = board->pieceBB[Pieces::Bishop] & board->colorBB[board->sideToMove];
@@ -442,17 +447,17 @@ void generateSlidingMoves(Board *board, MoveList *movelist, bool onlyCaptures)
     while (rooks)
     {
         int rook = popLSB(&rooks);
-        generateSlidingRays(board, movelist, rook, 0, 3, onlyCaptures);
+        generateSlidingRays(board, movelist, rook, 0, 3);
     }
     while (bishops)
     {
         int bishop = popLSB(&bishops);
-        generateSlidingRays(board, movelist, bishop, 4, 7, onlyCaptures);
+        generateSlidingRays(board, movelist, bishop, 4, 7);
     }
     while (queens)
     {
         int queen = popLSB(&queens);
-        generateSlidingRays(board, movelist, queen, 0, 7, onlyCaptures);
+        generateSlidingRays(board, movelist, queen, 0, 7);
     }
 }
 
@@ -470,14 +475,14 @@ void generateCastles(Board *board, MoveList *MoveList)
     {
         if (!(shortCastle[board->sideToMove] & attacked))
         {
-            appendMove(MoveList, board->getMove(0, 3, Pieces::Empty, true));
+            appendMove(MoveList, board->getMove(60, board->isWhite ? 62 : 6, Pieces::Empty, true));
         }
     }
     if ((longCastle[board->sideToMove] & board->allPiecesBB) == 0 && canLongCastle)
     {
-        if (!(longCastle[board->sideToMove] & attacked))
+        if (!(longCastle[board->sideToMove + 1] & attacked))
         {
-            appendMove(MoveList, board->getMove(60, 58, Pieces::Empty, true));
+            appendMove(MoveList, board->getMove(4, board->isWhite ? 58 : 2, Pieces::Empty, true));
         }
     }
 }
@@ -499,7 +504,7 @@ void generateKingMoves(Board *board, MoveList *MoveList)
     }
 }
 
-void generateMoves(Board *board, MoveList *moveList, bool onlyCaptures)
+void generateMoves(Board *board, MoveList *moveList)
 {
     moveList->count = 0;
 
@@ -508,13 +513,8 @@ void generateMoves(Board *board, MoveList *moveList, bool onlyCaptures)
     // Generate moves for each piece
 
     generateKingMoves(board, moveList);
-    generatePawnMoves(board, moveList, onlyCaptures);
-    generateKnightMoves(board, moveList, onlyCaptures);
-    generateSlidingMoves(board, moveList, onlyCaptures);
+    generatePawnMoves(board, moveList);
+    generateKnightMoves(board, moveList);
+    generateSlidingMoves(board, moveList);
     generateCastles(board, moveList);
-
-    if (!onlyCaptures)
-    {
-        // generateCastles(board, moveList);
-    }
 }

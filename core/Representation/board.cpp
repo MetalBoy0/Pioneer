@@ -77,6 +77,11 @@ void Board::loadFEN(string fen, bool isWhite, bool whiteCanCastleKingSide, bool 
     this->blackCanCastleQueenSide = blackCanCastleQueenSide;
     this->whiteCanCastleKingSide = whiteCanCastleKingSide;
     this->whiteCanCastleQueenSide = whiteCanCastleQueenSide;
+    this->removeCastlingRightsBK = -1;
+    this->removeCastlingRightsBQ = -1;
+    this->removeCastlingRightsWK = -1;
+    this->removeCastlingRightsWQ = -1;
+
     enPassantSquare = enPassantSquare;
     setupBitboards();
     attackedBB[sideToMove] = getAttackedBB(sideToMove);
@@ -326,6 +331,18 @@ void Board::makeMove(Move move)
     bool moveEnPassant = isEnPassant(move);
     enPassantHistory[ply] = enPassantSquare;
     enPassantSquare = -1;
+
+    if (isPromotion(move))
+    {
+        // Make the premoted piece a pawn
+        int to = getTo(move);
+        int from = getFrom(move);
+        Piece promotion = getPromotion(move) | sideToMove;
+        board[from] = promotion;
+        setBit(&pieceBB[getPromotion(move)], from);
+        clearBit(&pieceBB[Pieces::Pawn], from);
+    }
+
     // Update en passant square
     if (Pieces::isPawn(board[getFrom(move)]))
     {
@@ -341,7 +358,35 @@ void Board::makeMove(Move move)
             }
         }
     }
-
+    if (Pieces::isKing(board[getFrom(move)]) && (isWhite ? (whiteCanCastleKingSide | whiteCanCastleQueenSide) : (blackCanCastleKingSide | blackCanCastleQueenSide)))
+    {
+        if (sideToMove == Pieces::White)
+        {
+            whiteCanCastleKingSide = false;
+            whiteCanCastleQueenSide = false;
+            if (removeCastlingRightsWK == -1)
+            {
+                removeCastlingRightsWK = ply;
+            }
+            if (removeCastlingRightsWQ == -1)
+            {
+                removeCastlingRightsWQ = ply;
+            }
+        }
+        else
+        {
+            blackCanCastleKingSide = false;
+            blackCanCastleQueenSide = false;
+            if (removeCastlingRightsBK == -1)
+            {
+                removeCastlingRightsBK = ply;
+            }
+            if (removeCastlingRightsBQ == -1)
+            {
+                removeCastlingRightsBQ = ply;
+            }
+        }
+    }
     // Save the move to the history
 
     pastMoves[ply] = move;
@@ -349,6 +394,46 @@ void Board::makeMove(Move move)
     // Update the board
 
     // if enPassant
+    if (getFrom(move) == 0 && board[getFrom(move)] == (Pieces::Black | Pieces::Rook) && blackCanCastleQueenSide)
+    {
+        blackCanCastleQueenSide = false;
+        removeCastlingRightsBQ = ply;
+    }
+    if (getFrom(move) == 7 && board[getFrom(move)] == (Pieces::Black | Pieces::Rook) && blackCanCastleKingSide)
+    {
+        blackCanCastleKingSide = false;
+        removeCastlingRightsBK = ply;
+    }
+    if (getFrom(move) == 56 && board[getFrom(move)] == (Pieces::White | Pieces::Rook) && whiteCanCastleQueenSide)
+    {
+        whiteCanCastleQueenSide = false;
+        removeCastlingRightsWQ = ply;
+    }
+    if (getFrom(move) == 63 && board[getFrom(move)] == (Pieces::White | Pieces::Rook) && whiteCanCastleKingSide)
+    {
+        whiteCanCastleKingSide = false;
+        removeCastlingRightsWK = ply;
+    }
+    if (getTo(move) == 0 && board[getTo(move)] == (Pieces::Black | Pieces::Rook) && blackCanCastleQueenSide)
+    {
+        blackCanCastleQueenSide = false;
+        removeCastlingRightsBQ = ply;
+    }
+    if (getTo(move) == 7 && board[getTo(move)] == (Pieces::Black | Pieces::Rook) && blackCanCastleKingSide)
+    {
+        blackCanCastleKingSide = false;
+        removeCastlingRightsBK = ply;
+    }
+    if (getTo(move) == 56 && board[getTo(move)] == (Pieces::White | Pieces::Rook) && whiteCanCastleQueenSide)
+    {
+        whiteCanCastleQueenSide = false;
+        removeCastlingRightsWQ = ply;
+    }
+    if (getTo(move) == 63 && board[getTo(move)] == (Pieces::White | Pieces::Rook) && whiteCanCastleKingSide)
+    {
+        whiteCanCastleKingSide = false;
+        removeCastlingRightsWK = ply;
+    }
 
     // Update castling rights
     if (isCastle(move))
@@ -357,16 +442,49 @@ void Board::makeMove(Move move)
         {
             whiteCanCastleKingSide = false;
             whiteCanCastleQueenSide = false;
+            if (removeCastlingRightsWK == -1)
+            {
+                removeCastlingRightsWK = ply;
+            }
+            if (removeCastlingRightsWQ == -1)
+            {
+                removeCastlingRightsWQ = ply;
+            }
         }
         else
         {
+
             blackCanCastleKingSide = false;
             blackCanCastleQueenSide = false;
+            if (removeCastlingRightsBK == -1)
+            {
+                removeCastlingRightsBK = ply;
+            }
+            if (removeCastlingRightsBQ == -1)
+            {
+                removeCastlingRightsBQ = ply;
+            }
         }
+
         if (getTo(move) == 62)
         {
             setMove(getMove(60, 62));
             setMove(getMove(63, 61));
+        }
+        if (getTo(move) == 58)
+        {
+            setMove(getMove(60, 58));
+            setMove(getMove(56, 59));
+        }
+        if (getTo(move) == 6)
+        {
+            setMove(getMove(4, 6));
+            setMove(getMove(7, 5));
+        }
+        if (getTo(move) == 2)
+        {
+            setMove(getMove(4, 2));
+            setMove(getMove(0, 3));
         }
     }
     else if (moveEnPassant)
@@ -420,20 +538,43 @@ void Board::undoMove()
 
     // Update en passant square
     enPassantSquare = enPassantHistory[ply];
-
+    if (isPromotion(pastMoves[ply]))
+    {
+        // Make the premoted piece a pawn
+        int to = getTo(pastMoves[ply]);
+        int from = getFrom(pastMoves[ply]);
+        Piece promotion = getPromotion(pastMoves[ply]) | sideToMove;
+        board[to] = Pieces::Pawn | sideToMove;
+        clearBit(&pieceBB[getPromotion(pastMoves[ply])], to);
+        setBit(&pieceBB[Pieces::Pawn], to);
+    }
     // Update castling rights
     if (isCastle(pastMoves[ply]))
     {
-        if (sideToMove == Pieces::White)
+        if (getTo(pastMoves[ply]) == 62)
         {
-            whiteCanCastleKingSide = true;
-            whiteCanCastleQueenSide = true;
+            revertSetMove(getMove(60, 62, Pieces::Empty, true));
+            revertSetMove(getMove(63, 61, Pieces::Empty, true));
         }
-        else
+        if (getTo(pastMoves[ply]) == 58)
         {
-            blackCanCastleKingSide = true;
-            blackCanCastleQueenSide = true;
+            revertSetMove(getMove(60, 58, Pieces::Empty, true));
+            revertSetMove(getMove(56, 59, Pieces::Empty, true));
         }
+        if (getTo(pastMoves[ply]) == 6)
+        {
+            revertSetMove(getMove(4, 6, Pieces::Empty, true));
+            revertSetMove(getMove(7, 5, Pieces::Empty, true));
+        }
+        if (getTo(pastMoves[ply]) == 2)
+        {
+            revertSetMove(getMove(4, 2, Pieces::Empty, true));
+            revertSetMove(getMove(0, 3, Pieces::Empty, true));
+        }
+    }
+    else
+    {
+        revertSetMove(pastMoves[ply]);
     }
     if (enPassantSquare == getTo(pastMoves[ply]))
     {
@@ -444,9 +585,28 @@ void Board::undoMove()
         clearBit(&pieceBB[Pieces::Empty], enemyPawn);
         board[enemyPawn] = otherSide | Pieces::Pawn;
     }
-
+    if (ply == removeCastlingRightsWK)
+    {
+        whiteCanCastleKingSide = true;
+        removeCastlingRightsWK = -1;
+    }
+    if (ply == removeCastlingRightsBK)
+    {
+        blackCanCastleKingSide = true;
+        removeCastlingRightsBK = -1;
+    }
+    if (ply == removeCastlingRightsWQ)
+    {
+        whiteCanCastleQueenSide = true;
+        removeCastlingRightsWQ = -1;
+    }
+    if (ply == removeCastlingRightsBQ)
+    {
+        blackCanCastleQueenSide = true;
+        removeCastlingRightsBQ = -1;
+    }
     // Update the board
-    revertSetMove(pastMoves[ply]);
+
     allPiecesBB = colorBB[0] | colorBB[8]; // update all pieces bitboard
 
     // Update checking bitboard
@@ -510,13 +670,13 @@ Move Board::getMove(int from, int to, Piece promotion, bool isCastle)
     // Set promotion
     move |= promotion << 12;
     // Set isPromote
-    move |= promotion > 0 << 17;
+    move |= (promotion > 0) << 17;
     // Set isCapture
-    move |= (board[to] != 0) << 18;
+    move |= (isCastle ? 0 : (board[to] != 0)) << 18;
     // Set isCastle
     move |= isCastle << 19;
     // Set captured piece
-    move |= (board[to] & 0xF) << 20;
+    move |= (isCastle ? 0 : board[to] & 0xF) << 20;
     return move;
 }
 

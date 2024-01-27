@@ -24,8 +24,12 @@ public:
     bool isWhite;        // True if white, false if black
     int enPassantSquare; // -1 if no en passant square, otherwise the square
     int ply;             // number of moves since the start of the game
-    bool inCheck;        // If if the current side to move is in check.
-    indexList checkers;    // Number of checks
+    int removeCastlingRightsWQ = -1;
+    int removeCastlingRightsWK = -1;
+    int removeCastlingRightsBQ = -1;
+    int removeCastlingRightsBK = -1;
+    bool inCheck;       // If if the current side to move is in check.
+    indexList checkers; // Number of checks
 
     // Castling rights
     bool whiteCanCastleKingSide;

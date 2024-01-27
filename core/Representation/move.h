@@ -27,7 +27,7 @@ constexpr bool isCastle(Move move)
 
 constexpr bool isPromotion(Move move)
 {
-    return (move & 0x8000) != 0;
+    return (move >> 17 & 1) != 0;
 }
 
 constexpr Piece getPromotion(Move move)

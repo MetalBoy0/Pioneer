@@ -11,7 +11,7 @@ const Bitboard fullBB = ~emptyBB;
 
 // castling masks
 extern const Bitboard shortCastle[9];
-extern const Bitboard longCastle[9];
+extern const Bitboard longCastle[10];
 
 // File masks
 extern const Bitboard fileMasks[8];

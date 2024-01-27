@@ -9,7 +9,7 @@ from PIL import Image, ImageTk
 root: tkinter.Tk
 consoleTextInput: tkinter.Listbox
 
-startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w kqKQ -" # "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R"
+startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w kqKQ -"  # "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R"
 running = True
 consoleText = []
 consoleCursor = 0
@@ -170,13 +170,22 @@ class Manager:
             if output_line == "":
                 AI.stdout.readline()
                 continue
-            if "-" in output_line and "O-O" not in output_line:
+            if "-" in output_line and not "O-O" in output_line:
                 break
             elif "Total nodes:" in output_line:
                 d = True
             if not d:
-                if "O-O" in output_line:
-                    moves.append(Move(4, 6, True))
+                if "O-O-O" in output_line:
+                    if not self.board.isWhiteTurn:
+                        moves.append(Move(4, 2, True))
+                    else:
+                        moves.append(Move(60, 58, True))
+                elif "O-O:" in output_line:
+                    if not self.board.isWhiteTurn:
+                        moves.append(Move(4, 6, True))
+                    else:
+                        moves.append(Move(60, 62, True))
+
                 else:
                     moves.append(
                         Move(
@@ -205,10 +214,15 @@ class Manager:
             and abs(move.start - move.end) == 16
         ):
             self.board.enPassant = move.start + (8 if self.board.isWhiteTurn else -8)
-        if move.castle and (move.end - move.start > 0):
-            sideAdd = 0 if self.board.isWhiteTurn else 56
-            self.board.movePiece(7 + sideAdd, 5 + sideAdd)
-            self.board.movePiece(4 + sideAdd, 6 + sideAdd)
+        if move.castle:
+            if move.end == 6 or move.end == 62:
+                sideAdd = 0 if self.board.isWhiteTurn else 56
+                self.board.movePiece(7 + sideAdd, 5 + sideAdd)
+                self.board.movePiece(4 + sideAdd, 6 + sideAdd)
+            else:
+                sideAdd = 0 if self.board.isWhiteTurn else 56
+                self.board.movePiece(0 + sideAdd, 3 + sideAdd)
+                self.board.movePiece(4 + sideAdd, 2 + sideAdd)
         elif move.enPassant:
             self.board.movePiece(move.start, move.end)
             enemyPawn = move.end + (-8 if self.board.isWhiteTurn else 8)

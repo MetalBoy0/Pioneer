@@ -30,10 +30,10 @@ const Bitboard shortCastle[9] = {
     0, 0, 0, 0, 0, 0, 0,
     0b1100000};
 
-const Bitboard longCastle[9] = {
-    0b1110000ull << 56,
-    0, 0, 0, 0, 0, 0, 0,
-    0b1110};
+const Bitboard longCastle[10] = {
+    0b111ull << 57,
+    0b110ull << 57, 0, 0, 0, 0, 0, 0,
+    0b1110ull, 0b1100ull};
 
 Bitboard knightMoves[64];
 

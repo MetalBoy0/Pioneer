@@ -31,8 +31,14 @@ Move stringToMove(string moveString, Board board)
     int from;
     if (moveString == "O-O")
     {
-        from = 60;
-        to = 62;
+        from = board.isWhite ? 60 : 4;
+        to = board.isWhite ? 62 : 6;
+        castle = true;
+    }
+    else if (moveString == "O-O-O")
+    {
+        from = board.isWhite ? 60 : 4;
+        to = board.isWhite ? 58 : 2;
         castle = true;
     }
     else if (moveString.length() < 4)
@@ -53,22 +59,34 @@ string moveToString(Move move)
     string moveString = "";
     if (isCastle(move))
     {
-        if (indexToFile(move >> 6 & 0x3F) < 4)
+        if (getTo(move) == 62)
         {
-            return "O-O-O";
+            moveString = "e1g1";
         }
-        else
+        else if (getTo(move) == 58)
         {
-            return "O-O";
+            moveString = "e1c1";
         }
+        else if (getTo(move) == 6)
+        {
+            moveString = "e8g8";
+        }
+        else if (getTo(move) == 2)
+        {
+            moveString = "e8c8";
+        }
+        return moveString;
     }
-    else
+    moveString += (char)(indexToFile(move & 0x3F) + 'a');
+    moveString += (char)(indexToRank(move & 0x3F) + '1');
+    moveString += (char)(indexToFile(move >> 6 & 0x3F) + 'a');
+    moveString += (char)(indexToRank(move >> 6 & 0x3F) + '1');
+
+    if (isPromotion(move))
     {
-        moveString += (char)(indexToFile(move & 0x3F) + 'a');
-        moveString += (char)(indexToRank(move & 0x3F) + '1');
-        moveString += (char)(indexToFile(move >> 6 & 0x3F) + 'a');
-        moveString += (char)(indexToRank(move >> 6 & 0x3F) + '1');
+        moveString += Pieces::pieceToChar(getPromotion(move) | Pieces::Black);
     }
+
     return moveString;
 }
 
