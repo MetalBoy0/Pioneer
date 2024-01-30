@@ -142,7 +142,7 @@ float search(Board *board, unsigned int depth, int ply, float alpha, float beta)
             {
                 bestMove.move = move;
                 bestMove.value = value;
-                cout << "info depth " << depth << " score cp " << value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes << " pv ";
+                cout << "info bestmove " << moveToString(bestMove.move) << " depth " << depth << " score cp " << value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes << " pv \n";
             }
             path.moves[ply] = move;
         }

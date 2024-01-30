@@ -15,7 +15,8 @@ consoleText = []
 consoleCursor = 0
 DEBUG_MODE: bool = False
 SHOWING_BB: int | None = None
-AIPATH = os.getcwd() + "\\.vscode\\a.exe"
+PLAYING: bool = False
+AIPATH = os.getcwd() + "\\.vscode\\Debug.exe"
 AI = subprocess.Popen([AIPATH], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
 AI.stdout.flush()
 AI.stdout.readline()
@@ -134,10 +135,6 @@ class Move:
         self.enPassant = enPassant
 
     def __str__(self):
-        if self.castle and (self.end - self.start > 0):
-            return "O-O"
-        elif self.castle and (self.end - self.start < 0):
-            return "O-O-O"
         return (
             chr(self.start % 8 + 97)
             + str(self.start // 8 + 1)
@@ -155,36 +152,33 @@ class Manager:
 
     def getMoves(self) -> list[Move]:
         global AI, consoleCursor, consoleText
-        AI.stdin.write("\n".encode())
         AI.stdin.write("go perft 1\n".encode())
         AI.stdin.flush()
+        AI.stdout.flush()
         if DEBUG_MODE:
             typeToConsole("GUI> go perft 1")
         moves = []
         d = False
-        time.sleep(0.1)
-        while True:
-            output_line = AI.stdout.readline().decode().strip()
+        time.sleep(0.5)
+        for output_line in iter(AI.stdout):
             print(output_line)
+            output_line = output_line.decode().strip()
             AI.stdout.flush()
             if output_line == "":
-                AI.stdout.readline()
                 continue
-            if "-" in output_line and not "O-O" in output_line:
-                break
-            elif "Total nodes:" in output_line:
+            if "Perft search to depth" in output_line:
                 d = True
+            if "-" in output_line:
+                break
             if not d:
-                if "O-O-O" in output_line:
-                    if not self.board.isWhiteTurn:
-                        moves.append(Move(4, 2, True))
-                    else:
-                        moves.append(Move(60, 58, True))
-                elif "O-O:" in output_line:
-                    if not self.board.isWhiteTurn:
-                        moves.append(Move(4, 6, True))
-                    else:
-                        moves.append(Move(60, 62, True))
+                if "e1c1" in output_line and self.board.board[4][0].piece == WC | K:
+                    moves.append(Move(4, 2, True))
+                elif "e1g1:" in output_line and self.board.board[4][0].piece == WC | K:
+                    moves.append(Move(4, 6, True))
+                elif "e8c8" in output_line and self.board.board[4][7].piece == BC | K:
+                    moves.append(Move(60, 58, True))
+                elif "e8g8" in output_line and self.board.board[4][7].piece == BC | K:
+                    moves.append(Move(60, 62, True))
 
                 else:
                     moves.append(
@@ -202,9 +196,12 @@ class Manager:
         return moves
 
     def makeMove(self, move: Move):
-        string = "makemove " + str(move)
+        string = "makemove " + str(move) + "\n"
         print(string)
         AI.stdin.write((string).encode())
+        AI.stdin.flush()
+        AI.stdout.readline()
+        AI.stdout.readline()
         if move.end == self.board.enPassant:
             move.enPassant = True
         self.board.enPassant = None
@@ -223,6 +220,7 @@ class Manager:
                 sideAdd = 0 if self.board.isWhiteTurn else 56
                 self.board.movePiece(0 + sideAdd, 3 + sideAdd)
                 self.board.movePiece(4 + sideAdd, 2 + sideAdd)
+
         elif move.enPassant:
             self.board.movePiece(move.start, move.end)
             enemyPawn = move.end + (-8 if self.board.isWhiteTurn else 8)
@@ -339,6 +337,8 @@ class Board:
                 self.board[7 - x][7 - y].piece = color | Q
             elif f.lower() == "k":
                 self.board[7 - x][7 - y].piece = color | K
+            else:
+                self.board[7 - x][7 - y].piece = EMPTY
             i += 1
         self.isWhiteTurn = fen[1] == "w"
 
@@ -460,7 +460,7 @@ def _exit(root, boardCanvas):
 
 
 def processCommand(string) -> ConsoleReturn:
-    global DEBUG_MODE, SHOWING_BB
+    global DEBUG_MODE, SHOWING_BB, PLAYING
     string = string[2:].strip().split(" ")
     if string[0] == "showBB":
         if len(string) != 2:
@@ -500,6 +500,11 @@ def processCommand(string) -> ConsoleReturn:
         return ConsoleReturn(False, "")
     elif string[0] == "":
         return ConsoleReturn(False, "")
+    elif string[0].lower() == "play":
+        MANAGER.board.loadFen(startingFen)
+        getOutput("position fen " + startingFen)
+        PLAYING = True
+        return ConsoleReturn(False, "Activated AI")
     else:
         return ConsoleReturn(True, "Unknown Command")
 
@@ -509,28 +514,38 @@ def typeToConsole(string):
     consoleTextInput.insert(tkinter.END, string)
 
 
-def getOutput(string: str) -> list[str]:
+def getOutput(string: str, timeout=0.1) -> list[str]:
     global AI, DEBUG_MODE
     if DEBUG_MODE:
         typeToConsole(f"GUI> {string}")
-    AI.stdout.flush()
-    AI.stdin.write("\n".encode())
     AI.stdin.write((string + "\n").encode())
     AI.stdin.flush()
-    time.sleep(0.1)
+    time.sleep(timeout)
     l = []
 
     while True:
+        AI.stdout.flush()
         output_line = AI.stdout.readline().decode()
-        if "-" in output_line:
-            break
+
         l.append(output_line)
+
+        if "-" == output_line.strip():
+            break
     if DEBUG_MODE:
         if l != ["\r\n"]:
             typeToConsole(f"Pioneer> ")
             for o in l:
                 typeToConsole(o)
     return l
+
+
+def getAIOutput(depth: int):
+    out = getOutput("go depth {}".format(depth), 1)
+    move = out[-3].split(" ")[2]
+    return Move(
+        (ord(move[0]) - 97 + (int(move[1]) - 1) * 8),
+        (ord(move[2]) - 97 + (int(move[3]) - 1) * 8),
+    )
 
 
 def appendToConsole(string: str):
