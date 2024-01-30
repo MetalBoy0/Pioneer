@@ -82,5 +82,14 @@ int main()
             parseUndoMove(parser);
             cout << "\n-\n";
         }
+        else if (input == "eval")
+        {
+            parseEval(parser);
+            cout << "\n-\n";
+        }
+        else
+        {
+            cout << "Unknown command: " << input << "\n";
+        }
     }
 }

@@ -6,7 +6,7 @@
             "command": "C:\\msys64\\mingw64\\bin\\g++.exe",
             "args": [
                 "-fdiagnostics-color=always",
-                "-g",
+                "-O3",
                 "${workspaceFolder}\\main.cpp",
                 "${workspaceFolder}\\uci.cpp",
                 "${workspaceFolder}\\core\\Representation\\board.cpp",
@@ -17,6 +17,7 @@
                 "${workspaceFolder}\\microbench\\systemtime.cpp",
                 "${workspaceFolder}\\core\\Search\\search.cpp",
                 "${workspaceFolder}\\core\\Search\\evaluate.cpp",
+                "${workspaceFolder}\\core\\Search\\moveOrder.cpp",
                 "-o",
                 "${workspaceFolder}\\.vscode\\a.exe"
             ],

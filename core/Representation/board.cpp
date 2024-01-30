@@ -1,4 +1,5 @@
 #include "board.h"
+#include "bitboard.h"
 #include "../MoveGeneration/movegen.h"
 #include <cassert>
 // Resets bitboards based on the board array
@@ -46,9 +47,19 @@ void Board::setupBitboards()
     allPiecesBB = colorBB[0] | colorBB[8];
 }
 
+void Board::clearPieceLists()
+{
+    for (int i = 0; i < 7; i++)
+    {
+        pieces[i][0].count = 0;
+        pieces[i][1].count = 0;
+    }
+}
+
 void Board::loadFEN(string fen, bool isWhite, bool whiteCanCastleKingSide, bool whiteCanCastleQueenSide, bool blackCanCastleKingSide, bool blackCanCastleQueenSide, int enPassantSquare)
 {
     int current = 0;
+    clearPieceLists();
 
     for (auto x : fen)
     {
@@ -68,6 +79,7 @@ void Board::loadFEN(string fen, bool isWhite, bool whiteCanCastleKingSide, bool 
         else
         {
             board[current] = Pieces::charToPiece(x);
+            addPiece(&pieces[Pieces::getType(board[current])][Pieces::isBlack(board[current])], current);
             current++;
         }
     }
@@ -93,6 +105,7 @@ void Board::setMove(Move move)
 {
     int from = getFrom(move);
     int to = getTo(move);
+
     Piece movePiece = board[from];
     Piece capturedPiece = getCapturedPiece(move);
 
@@ -105,6 +118,9 @@ void Board::setMove(Move move)
     board[from] = Pieces::Empty;
     board[to] = movePiece;
 
+    // update PieceList
+    movePieceList(&pieces[pieceType][side / 8], from, to);
+
     // Remove piece from 'from' square
     // We need to first clear the piece from Color BB and Piece BB
     clearBit(&colorBB[side], from);
@@ -115,6 +131,8 @@ void Board::setMove(Move move)
     clearBit(&pieceBB[capturedType], to);
     if (capturedPiece != Pieces::Empty)
     {
+        // Update PieceList
+        removePiece(&pieces[capturedType][capturedSide / 8], to);
         clearBit(&colorBB[capturedSide], to);
     }
 
@@ -140,6 +158,9 @@ void Board::revertSetMove(Move move)
     board[from] = movePiece;
     board[to] = capturedPiece;
 
+    // update PieceList
+    movePieceList(&pieces[pieceType][side / 8], to, from);
+
     // Add piece to 'from' square
     // We need to first set the piece to Color BB and Piece BB
 
@@ -150,6 +171,8 @@ void Board::revertSetMove(Move move)
     setBit(&pieceBB[capturedType], to);
     if (capturedPiece != Pieces::Empty)
     {
+        // Update PieceList
+        addPiece(&pieces[capturedType][capturedSide / 8], to);
         setBit(&colorBB[capturedSide], to);
     }
 
@@ -341,6 +364,9 @@ void Board::makeMove(Move move)
         board[from] = promotion;
         setBit(&pieceBB[getPromotion(move)], from);
         clearBit(&pieceBB[Pieces::Pawn], from);
+        // Update PieceList
+        removePiece(&pieces[Pieces::Pawn][sideToMove / 8], from);
+        addPiece(&pieces[getPromotion(move)][sideToMove / 8], from);
     }
 
     // Update en passant square
@@ -547,6 +573,9 @@ void Board::undoMove()
         board[to] = Pieces::Pawn | sideToMove;
         clearBit(&pieceBB[getPromotion(pastMoves[ply])], to);
         setBit(&pieceBB[Pieces::Pawn], to);
+        // Update PieceList
+        removePiece(&pieces[getPromotion(pastMoves[ply])][sideToMove / 8], to);
+        addPiece(&pieces[Pieces::Pawn][sideToMove / 8], to);
     }
     // Update castling rights
     if (isCastle(pastMoves[ply]))
@@ -617,6 +646,14 @@ void Board::undoMove()
     inCheck = attackedBB[otherSide] & pieceBB[Pieces::King] & colorBB[sideToMove];
 }
 
+bool Board::isCheck(Move move)
+{
+    makeMove(move);
+    bool check = inCheck;
+    undoMove();
+    return check;
+}
+
 Direction Board::isPinned(int square)
 {
     // Get king square
@@ -654,6 +691,11 @@ Direction Board::isPinned(int square)
         }
     }
     return Direction::NULLDIR;
+}
+
+bool Board::isAttacked(int square, Pieces::Color side)
+{
+    return getBitboardFromSquare(square) & attackedBB[side];
 }
 
 Move Board::getMove(int from, int to, Piece promotion, bool isCastle)
@@ -694,6 +736,7 @@ Board::Board()
     blackCanCastleQueenSide = true;
     whiteCanCastleKingSide = true;
     whiteCanCastleQueenSide = true;
+    clearPieceLists();
     enPassantSquare = -1;
     isWhite = Pieces::isWhite(sideToMove);
     loadFEN(startFen, isWhite, whiteCanCastleKingSide, whiteCanCastleQueenSide, blackCanCastleKingSide, blackCanCastleQueenSide, enPassantSquare);

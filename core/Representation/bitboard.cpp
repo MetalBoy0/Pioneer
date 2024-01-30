@@ -184,7 +184,7 @@ Bitboard bitboardRay(int from, int to)
     return bb;
 }
 
-inline Bitboard sendRay(Bitboard *bb, Direction dir, int square)
+Bitboard sendRay(Bitboard *bb, Direction dir, int square)
 {
     Bitboard obb = 0;
     if (distToEdge[square][getDirIndex(dir)] == 0)

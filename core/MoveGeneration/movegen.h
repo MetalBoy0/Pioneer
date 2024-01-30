@@ -12,6 +12,6 @@ struct MoveList
 
 
 extern void appendMove(MoveList *moveList, Move move);
-extern void generateMoves(Board *board, MoveList *moveList);
+extern void generateMoves(Board *board, MoveList *moveList, bool onlyCaptures = false);
 
 #endif

@@ -3,11 +3,14 @@
 #include <iostream>
 #include <sstream>
 #include "uci.h"
+#include "core\Search\evaluate.h"
 #include "core\representation\bitboard.h"
 #include "core\Search\search.h"
+#include "core\Search\moveOrder.h"
 #include <chrono>
 #include "core\MoveGeneration\movegen.h"
 #include "microbench\microbench.h"
+
 #define MAX_INT -1u;
 #define MAX_DEPTH 8;
 
@@ -26,16 +29,16 @@ void setup()
 Move stringToMove(string moveString, Board board)
 {
     bool castle = false;
-    bool promote = Pieces::Empty;
+    Piece promote = Pieces::Empty;
     int to;
     int from;
-    if (moveString == "O-O")
+    if ((moveString == "e1g1" || moveString == "e8g8") && (Pieces::getType(board.board[4]) == Pieces::King || Pieces::getType(board.board[60]) == Pieces::King))
     {
         from = board.isWhite ? 60 : 4;
         to = board.isWhite ? 62 : 6;
         castle = true;
     }
-    else if (moveString == "O-O-O")
+    else if ((moveString == "e1c1" || moveString == "e8c8") && (Pieces::getType(board.board[4]) == Pieces::King || Pieces::getType(board.board[60]) == Pieces::King))
     {
         from = board.isWhite ? 60 : 4;
         to = board.isWhite ? 58 : 2;
@@ -49,6 +52,10 @@ Move stringToMove(string moveString, Board board)
     {
         from = ((moveString[0] - 'a') + (8 * (7 - (moveString[1] - '1'))));
         to = ((moveString[2] - 'a') + (8 * (7 - (moveString[3] - '1'))));
+    }
+    if (moveString.length() == 5)
+    {
+        promote = Pieces::charToPiece(moveString[4]);
     }
 
     return board.getMove(from, to, promote, castle);
@@ -231,8 +238,16 @@ void parseGo(istringstream &parser)
     {
         // Normal search
         cout << "Normal search to depth " << depthValue << "\n";
-        // cout << "Nodes: " << startSearch(&board, depthValue) << "\n";
+        auto start = chrono::high_resolution_clock::now();
+        Move bestMove = startSearch(&board, depthValue);
+        auto stop = chrono::high_resolution_clock::now();
+        cout << "Best move: " << moveToString(bestMove) << "\n";
     }
+}
+
+void parseEval(istringstream &parser)
+{
+    cout << "Eval: " << evaluate(&board) << "\n";
 }
 
 void parseMakeMove(istringstream &parser)

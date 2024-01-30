@@ -35,7 +35,7 @@ extern Bitboard dirToBB[8][64];
 extern void printBitboard(Bitboard *bb);
 extern Bitboard bitboardRay(Direction dir, int square);
 extern Bitboard bitboardRay(int from, int to);
-extern inline Bitboard sendRay(Bitboard *bb, Direction dir, int square);
+extern Bitboard sendRay(Bitboard *bb, Direction dir, int square);
 extern void initBBs();
 namespace
 {
@@ -80,7 +80,7 @@ namespace
         return lsb;
     }
 
-    int getNumBits(Bitboard *bb)
+    int popCount(Bitboard *bb)
     {
         return __builtin_popcountll(*bb);
     }
