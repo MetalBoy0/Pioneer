@@ -1,5 +1,6 @@
 import tkinter
 from tkinter import ttk, messagebox
+from threading import Thread
 import os
 import subprocess
 import time
@@ -13,6 +14,9 @@ startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w kqKQ -"  # "rnbq1k1
 running = True
 consoleText = []
 consoleCursor = 0
+
+WORKER: Thread
+THINKING = False
 DEBUG_MODE: bool = False
 SHOWING_BB: int | None = None
 PLAYING: bool = False
@@ -315,7 +319,9 @@ class Board:
             if f == "/":
                 continue
             if f.isdigit():
-                i += int(f)
+                for _ in range(int(f)):
+                    self.board[7 - i % 8][7 - i // 8].piece = EMPTY
+                    i += 1
                 continue
 
             x = 7 - i % 8
@@ -384,9 +390,12 @@ class Board:
         self.board[start % 8][start // 8].isLastMoved = True
 
     def onCLick(self, event):
+        global WORKER, THINKING
         x = event.x // (640 // 8)
         y = 7 - event.y // (640 // 8)
         print(x + y * 8)
+        if THINKING:
+            return
         # Make sure you select a piece of your color
         if (
             isWhite(self.board[x][y].piece) == self.isWhiteTurn
@@ -411,6 +420,8 @@ class Board:
             self.selected = (-1, -1)
 
         self.update()
+        if PLAYING and not self.isWhiteTurn:
+            WORKER.start()
 
     def update(self):
         global SHOWING_BB
@@ -503,10 +514,22 @@ def processCommand(string) -> ConsoleReturn:
     elif string[0].lower() == "play":
         MANAGER.board.loadFen(startingFen)
         getOutput("position fen " + startingFen)
+        MANAGER.getMoves()
+        MANAGER.board.selected = (-1, -1)
+        MANAGER.board.lastMove = None
         PLAYING = True
         return ConsoleReturn(False, "Activated AI")
     else:
         return ConsoleReturn(True, "Unknown Command")
+
+
+def worker():
+    global MANAGER, THINKING, WORKER
+    THINKING = True
+    move = getAIOutput(6)
+    MANAGER.makeMove(move)
+    THINKING = False
+    WORKER = Thread(target=worker, daemon=True)
 
 
 def typeToConsole(string):
@@ -541,6 +564,7 @@ def getOutput(string: str, timeout=0.1) -> list[str]:
 
 def getAIOutput(depth: int):
     out = getOutput("go depth {}".format(depth), 1)
+    print("".join(out))
     move = out[-3].split(" ")[2]
     return Move(
         (ord(move[0]) - 97 + (int(move[1]) - 1) * 8),
@@ -604,7 +628,7 @@ def getConsoleOut(userIn, console: tkinter.Listbox):
 
 
 def main():
-    global AI, MANAGER, IMAGES, consoleTextInput, root
+    global AI, MANAGER, IMAGES, WORKER, consoleTextInput, root
 
     root = tkinter.Tk()
     root.title("Chess")
@@ -633,9 +657,6 @@ def main():
     consoleFrame.pack(side=tkinter.RIGHT, anchor=tkinter.S)
     boardCanvas.pack(side=tkinter.LEFT, anchor=tkinter.NW)
 
-    consoleText.append("> ")
-
-    consoleTextInput.insert(tkinter.END, "")
 
     for x in [chr(i) for i in range(33, 127)]:
         if x == ">":
@@ -660,8 +681,9 @@ def main():
 
     root.bind("<Button-1>", MANAGER.board.onCLick)
 
-    appendToConsole("> ")
-
+    WORKER = Thread(target=worker, daemon=True)
+    consoleText.append("> ")
+    consoleTextInput.insert(tkinter.END, consoleText[-1])
     while running:
         boardCanvas.delete("all")
         MANAGER.board.update()

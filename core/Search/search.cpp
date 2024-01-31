@@ -6,6 +6,7 @@
 #include "evaluate.h"
 #include "moveOrder.h"
 #include <cassert>
+#include <chrono>
 
 using namespace std;
 
@@ -63,6 +64,7 @@ float qsearch(Board *board, int ply, float alpha, float beta)
     }
     MoveList moveList;
     generateMoves(board, &moveList, true);
+    sortMoves(&moveList, 0, board, true);
     if (moveList.count == 0)
     {
         return eval;
@@ -103,7 +105,6 @@ float search(Board *board, unsigned int depth, int ply, float alpha, float beta)
     }
     MoveList moveList;
     generateMoves(board, &moveList);
-    // sortMoves(&moveList, startMove, board);
 
     if (moveList.count == 0)
     {
@@ -116,18 +117,11 @@ float search(Board *board, unsigned int depth, int ply, float alpha, float beta)
             return 0;
         }
     }
-    sortMoves(&moveList, 0, board, true);
+    sortMoves(&moveList, startMove, board);
     for (int i = 0; i < moveList.count; i++)
     {
         Move move = moveList.moves[i];
-        if (move == startMove)
-        {
-            continue;
-        }
-        if (isCapture(move))
-        {
-            diagnostics.qNodes++;
-        }
+
         board->makeMove(move);
         float value = -search(board, depth - 1, ply + 1, -beta, -alpha);
         board->undoMove();
@@ -142,7 +136,6 @@ float search(Board *board, unsigned int depth, int ply, float alpha, float beta)
             {
                 bestMove.move = move;
                 bestMove.value = value;
-                cout << "info bestmove " << moveToString(bestMove.move) << " depth " << depth << " score cp " << value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes << " pv \n";
             }
             path.moves[ply] = move;
         }
@@ -150,12 +143,47 @@ float search(Board *board, unsigned int depth, int ply, float alpha, float beta)
     return alpha;
 }
 
-Move startSearch(Board *board, unsigned int depth)
+void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 0, int maxNodes = 0)
 {
+    diagnostics.nodes = 0;
+    diagnostics.qNodes = 0;
+    diagnostics.time = 0;
+    diagnostics.cutoffs = 0;
+    startMove = 0;
+    int startTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+    for (int i = 1; i <= maxDepth; i++)
+    {
+        bestMove.move = 0;
+        bestMove.value = -100000;
+        search(board, i, 0, NEGINF, POSINF);
+        int currentTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+        cout << "info depth " << i << " score cp " << bestMove.value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes * 1000 / (currentTime - startTime + 1) << " pv \n";
+        startMove = bestMove.move;
+        if (IsMate(bestMove.value))
+        {
+            break;
+        }
 
+        if ((currentTime - startTime) > maxTime && maxTime != 0)
+        {
+            break;
+        }
+        if (diagnostics.nodes > maxNodes && maxNodes != 0)
+        {
+            break;
+        }
+    }
+}
+
+Move startSearch(Board *board, unsigned int depth, int maxTime, int maxNodes, int wtime, int btime)
+{
+    if (wtime != 0 && btime != 0)
+    {
+        maxTime = (wtime + btime) / 4;
+    }
     bestMove.value = -100000;
     bestMove.move = 0;
-    search(board, depth, 0, NEGINF, POSINF);
+    startIterativeDeepening(board, depth, maxTime, maxNodes);
     path.count = depth;
     cout << "\n";
     return bestMove.move;
@@ -175,7 +203,6 @@ unsigned int perft(Board *board, unsigned int depth)
     }
 
     unsigned int nodes = 0;
-    sortMoves(&moveList, 0, board);
     for (int i = 0; i < moveList.count; i++)
     {
         Move move = moveList.moves[i];

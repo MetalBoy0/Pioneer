@@ -163,6 +163,16 @@ void parsePosition(istringstream &parser)
         }
         board.loadFEN(fen, isWhite, whiteCanCastleKingSide, whiteCanCastleQueenSide, blackCanCastleKingSide, blackCanCastleQueenSide, -1);
     }
+    string moveS;
+    parser >> moveS;
+    if (moveS == "moves")
+    {
+        while (parser >> moveS)
+        {
+            Move move = stringToMove(moveS, board);
+            board.makeMove(move);
+        }
+    }
 }
 
 // Starts a search by the engine based off the specified parameters
@@ -173,6 +183,8 @@ void parseGo(istringstream &parser)
     unsigned int depthValue = 0;    // Targeted depth of the search
     unsigned int nodesCount = 0;    // Max number of nodes to search
     unsigned int moveTimeValue = 0; // Max time to search in milliseconds
+    unsigned int wtime = 0;         // White time
+    unsigned int btime = 0;         // Black time
 
     while (parser)
     {
@@ -209,20 +221,22 @@ void parseGo(istringstream &parser)
             parser >> moveTimeInput;
             moveTimeValue = stoi(moveTimeInput);
         }
-    }
-    if (nodesCount == 0)
-    {
-        // Max nodes have not been specified
-        nodesCount = MAX_INT;
-    }
-    if (moveTimeValue == 0)
-    {
-        // Max time has not been specified
-        moveTimeValue = MAX_INT;
+        else if (option == "wtime")
+        {
+            string wtimeInput;
+            parser >> wtimeInput;
+            wtime = stoi(wtimeInput);
+        }
+        else if (option == "btime")
+        {
+            string btimeInput;
+            parser >> btimeInput;
+            btime = stoi(btimeInput);
+        }
     }
     if (depthValue == 0)
     {
-        depthValue = 8;
+        depthValue = 6;
     }
     if (perft)
     {
@@ -239,9 +253,9 @@ void parseGo(istringstream &parser)
         // Normal search
         cout << "Normal search to depth " << depthValue << "\n";
         auto start = chrono::high_resolution_clock::now();
-        Move bestMove = startSearch(&board, depthValue);
+        Move bestMove = startSearch(&board, depthValue, moveTimeValue, nodesCount, wtime, btime);
         auto stop = chrono::high_resolution_clock::now();
-        cout << "Best move: " << moveToString(bestMove) << "\n";
+        cout << "bestmove " << moveToString(bestMove) << "\n";
     }
 }
 

@@ -51,7 +51,14 @@
         "ratio": "cpp",
         "chrono": "cpp",
         "ctime": "cpp",
-        "cstring": "cpp"
+        "cstring": "cpp",
+        "cassert": "cpp",
+        "condition_variable": "cpp",
+        "map": "cpp",
+        "optional": "cpp",
+        "iomanip": "cpp",
+        "mutex": "cpp",
+        "thread": "cpp"
     }
     
 }
