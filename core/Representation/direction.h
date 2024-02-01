@@ -33,6 +33,7 @@ const Direction queenDirections[8] = {N, S, E, W, NE, SE, NW, SW};
 extern Direction directions[64][64];
 extern int16_t distToEdge[64][8];
 extern void initDirections();
+extern int _dirIndex[19]; // Origin shifted to 10
 extern int getDirIndex(Direction dir);
 namespace
 {

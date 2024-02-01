@@ -89,7 +89,8 @@ int main()
         }
         else
         {
-            cout << "Unknown command: " << input << "\n";
+            cout << "Unknown command: " << input;
         }
+        cout << "\n";
     }
 }

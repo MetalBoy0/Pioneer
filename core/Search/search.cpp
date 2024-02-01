@@ -153,11 +153,12 @@ void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 
     int startTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
     for (int i = 1; i <= maxDepth; i++)
     {
+        int startTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
         bestMove.move = 0;
         bestMove.value = -100000;
         search(board, i, 0, NEGINF, POSINF);
         int currentTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
-        cout << "info depth " << i << " score cp " << bestMove.value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes * 1000 / (currentTime - startTime + 1) << " pv \n";
+        cout << "info depth " << i << " score cp " << bestMove.value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes * 1000 / (currentTime - startTime + 1) << " time " << currentTime - startTime << " pv\n";
         startMove = bestMove.move;
         if (IsMate(bestMove.value))
         {

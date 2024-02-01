@@ -6,33 +6,13 @@ Direction directions[64][64];
 /*Distance to the edge of the board from every direction, in order:
   In order N S E W NE NW SE SW*/
 int16_t distToEdge[64][8];
+int _dirIndex[19] = {7, 1, 6, 0, 0, 0, 0, 0, 3, 0, 2, 0, 0, 0, 0, 0, 5, 0, 4};
+int *d = _dirIndex + 9;
 
 int getDirIndex(Direction dir)
 {
-    switch (dir)
-    {
-    case 8:
-        return 0;
-    case -8:
-        return 1;
-    case 1:
-        return 2;
-    case -1:
-        return 3;
-    case 9:
-        return 4;
-    case 7:
-        return 5;
-    case -7:
-        return 6;
-    case -9:
-        return 7;
-    default:
-        return 0;
-    }
+    return (d)[dir];
 }
-
-
 
 // Init the direction array
 void initDirections()

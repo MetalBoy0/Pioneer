@@ -106,7 +106,7 @@ namespace
     }
 
     template <>
-    Bitboard getAttackBB<Pieces::Knight>(int s)
+    inline Bitboard getAttackBB<Pieces::Knight>(int s)
     {
         return knightMoves[s];
     }
@@ -117,10 +117,6 @@ namespace
         Bitboard attackBB = 0;
         for (auto x : bishopDirections)
         {
-            if (distToEdge[s][getDirIndex(x)] == 0)
-            {
-                continue;
-            }
             attackBB |= sendRay(squares, x, s);
         }
         return attackBB;
@@ -132,10 +128,6 @@ namespace
         Bitboard attackBB = 0;
         for (auto x : rookDirections)
         {
-            if (distToEdge[s][getDirIndex(x)] == 0)
-            {
-                continue;
-            }
             attackBB |= sendRay(squares, x, s);
         }
         return attackBB;

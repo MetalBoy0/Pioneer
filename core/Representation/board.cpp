@@ -665,7 +665,9 @@ Direction Board::isPinned(int square)
     Bitboard enemyPieces = colorBB[otherSide];
 
     Direction dir = getDirectionBetween(kingSquare, square);
-    if (dir != Direction::NULLDIR || NNW || NNE || SSE || SSW || NWW || NEE || SEE || SWW)
+    if (dir != Direction::NULLDIR && dir != Direction::NNW && dir != Direction::NNE &&
+        dir != Direction::SSE && dir != Direction::SSW && dir != Direction::SEE &&
+        dir != Direction::SWW && dir != Direction::NEE && dir != Direction::NWW)
     {
         Bitboard checkBB = sendRay(&allPiecesBB, dir, kingSquare);
         // If there is not a piece in between the king and the square
