@@ -172,13 +172,9 @@ Bitboard bitboardRay(int from, int to)
         return 0ULL;
     }
     int i = from;
-    while (distToEdge[i] == 0)
+    while (i != to)
     {
         setBit(&bb, i);
-        if (i == to)
-        {
-            break;
-        }
         i += dir;
     }
     return bb;

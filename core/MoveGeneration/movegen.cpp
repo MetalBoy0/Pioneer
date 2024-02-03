@@ -394,11 +394,8 @@ void generateSlidingRays(Board *board, MoveList *moveList, int from, int startDi
                 continue;
             }
         }
-        int oldF = indexToFile(from);
-        int oldR = indexToRank(from);
         int to = from + dir;
-        int toF = indexToFile(to);
-        int toR = indexToRank(to);
+
         if (distToEdge[from][getDirIndex(dir)] == 0 || (Pieces::getColor(board->board[to]) == board->sideToMove && board->board[to] != Pieces::Empty))
         {
             continue;
@@ -436,11 +433,7 @@ void generateSlidingRays(Board *board, MoveList *moveList, int from, int startDi
             {
                 break;
             }
-            oldF = indexToFile(to);
-            oldR = indexToRank(to);
             to += dir;
-            toF = indexToFile(to);
-            toR = indexToRank(to);
         }
     }
 }

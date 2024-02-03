@@ -6,13 +6,17 @@ Direction directions[64][64];
 /*Distance to the edge of the board from every direction, in order:
   In order N S E W NE NW SE SW*/
 int16_t distToEdge[64][8];
-int _dirIndex[19] = {7, 1, 6, 0, 0, 0, 0, 0, 3, 0, 2, 0, 0, 0, 0, 0, 5, 0, 4};
-int *d = _dirIndex + 9;
+
+int _dirIndex[19] = { 7, 1, 6, 0, 0, 0, 0, 0, 3, 0, 2, 0, 0, 0, 0, 0, 5, 0, 4 };
+int* d = _dirIndex + 9;
 
 int getDirIndex(Direction dir)
 {
     return (d)[dir];
 }
+
+
+
 
 // Init the direction array
 void initDirections()
@@ -102,10 +106,10 @@ void initDirections()
         int s = rank;
         int w = file;
         int e = 7 - file;
-        int ne = __builtin_fminf(n, e);
-        int nw = __builtin_fminf(n, w);
-        int se = __builtin_fminf(s, e);
-        int sw = __builtin_fminf(s, w);
+        int ne = __builtin_fmin(n, e);
+        int nw = __builtin_fmin(n, w);
+        int se = __builtin_fmin(s, e);
+        int sw = __builtin_fmin(s, w);
         distToEdge[i][0] = n;
         distToEdge[i][1] = s;
         distToEdge[i][2] = e;

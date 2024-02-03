@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-enum Direction
+enum Direction : int8_t
 {
     NULLDIR = 0,
     N = 8,

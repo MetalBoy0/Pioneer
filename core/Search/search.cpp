@@ -89,6 +89,7 @@ float qsearch(Board *board, int ply, float alpha, float beta)
 float search(Board *board, unsigned int depth, int ply, float alpha, float beta)
 {
     diagnostics.nodes++;
+
     if (depth == 0)
     {
         return qsearch(board, ply, alpha, beta);
@@ -150,15 +151,16 @@ void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 
     diagnostics.time = 0;
     diagnostics.cutoffs = 0;
     startMove = 0;
+    cout << board->score << "\n";
     int startTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
     for (int i = 1; i <= maxDepth; i++)
     {
-        int startTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+        int startDepthTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
         bestMove.move = 0;
         bestMove.value = -100000;
         search(board, i, 0, NEGINF, POSINF);
         int currentTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
-        cout << "info depth " << i << " score cp " << bestMove.value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes * 1000 / (currentTime - startTime + 1) << " time " << currentTime - startTime << " pv\n";
+        cout << "info depth " << i << " score cp " << bestMove.value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes * 1000 / (currentTime - startDepthTime + 1) << " pv \n";
         startMove = bestMove.move;
         if (IsMate(bestMove.value))
         {
@@ -173,6 +175,14 @@ void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 
         {
             break;
         }
+        if (i == maxDepth && maxDepth != 0)
+        {
+            break;
+        }
+        diagnostics.nodes = 0;
+        diagnostics.qNodes = 0;
+        diagnostics.time = 0;
+        diagnostics.cutoffs = 0;
     }
 }
 

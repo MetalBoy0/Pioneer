@@ -75,9 +75,9 @@ namespace
 
     int popLSB(Bitboard *bb)
     {
-        int lsb = getLSB(bb);
-        clearBit(bb, lsb);
-        return lsb;
+        int index = getLSB(bb);
+        *bb &= *bb - 1; // Not depend on the previous line
+        return index;
     }
 
     int popCount(Bitboard *bb)
@@ -114,23 +114,13 @@ namespace
     template <>
     Bitboard getAttackBB<Pieces::Bishop>(int s, Bitboard *squares)
     {
-        Bitboard attackBB = 0;
-        for (auto x : bishopDirections)
-        {
-            attackBB |= sendRay(squares, x, s);
-        }
-        return attackBB;
+        return  sendRay(squares, NW, s) | sendRay(squares, SW, s) | sendRay(squares, NE, s) | sendRay(squares, SE, s);
     }
 
     template <>
     Bitboard getAttackBB<Pieces::Rook>(int s, Bitboard *squares)
     {
-        Bitboard attackBB = 0;
-        for (auto x : rookDirections)
-        {
-            attackBB |= sendRay(squares, x, s);
-        }
-        return attackBB;
+        return sendRay(squares, N, s) | sendRay(squares, S, s) | sendRay(squares, E, s) | sendRay(squares, W, s);
     }
 
     template <>

@@ -30,8 +30,9 @@ public:
     Pieces::Color otherSide;
     pieceList pieces[7][2]; // Pieces by type and color [piece][color]
     bool isWhite;           // True if white, false if black
-    int enPassantSquare;    // -1 if no en passant square, otherwise the square
-    int ply;                // number of moves since the start of the game
+    int score;
+    int enPassantSquare; // -1 if no en passant square, otherwise the square
+    int ply;             // number of moves since the start of the game
     int removeCastlingRightsWQ = -1;
     int removeCastlingRightsWK = -1;
     int removeCastlingRightsBQ = -1;
@@ -84,6 +85,68 @@ public:
     Board(); // Default constructor
 };
 
+namespace PieceSquareTable
+{
+
+    const int psq[7][64] = {{0},
+                            {// const int pawnTableB[64] = {
+                             0, 0, 0, 0, 0, 0, 0, 0,
+                             50, 50, 50, 50, 50, 50, 50, 50,
+                             10, 10, 20, 30, 30, 20, 10, 10,
+                             5, 5, 10, 25, 25, 10, 5, 5,
+                             0, 0, 0, 20, 20, 0, 0, 0,
+                             5, -5, -10, 0, 0, -10, -5, 5,
+                             5, 10, 10, -20, -20, 10, 10, 5,
+                             0, 0, 0, 0, 0, 0, 0, 0},
+                            {// const int knightsB[64] = {
+                             -50, -40, -30, -30, -30, -30, -40, -50,
+                             -40, -20, 0, 0, 0, 0, -20, -40,
+                             -30, 0, 10, 15, 15, 10, 0, -30,
+                             -30, 5, 15, 20, 20, 15, 5, -30,
+                             -30, 0, 15, 20, 20, 15, 0, -30,
+                             -30, 5, 10, 15, 15, 10, 5, -30,
+                             -40, -20, 0, 5, 5, 0, -20, -40,
+                             -50, -40, -30, -30, -30, -30, -40, -50},
+                            {// const int bishopsB[64] = {
+                             -20, -10, -10, -10, -10, -10, -10, -20,
+                             -10, 0, 0, 0, 0, 0, 0, -10,
+                             -10, 0, 5, 10, 10, 5, 0, -10,
+                             -10, 5, 5, 10, 10, 5, 5, -10,
+                             -10, 0, 10, 10, 10, 10, 0, -10,
+                             -10, 10, 10, 10, 10, 10, 10, -10,
+                             -10, 5, 0, 0, 0, 0, 5, -10,
+                             -20, -10, -10, -10, -10, -10, -10, -20},
+                            {// const int rooksB[64] = {
+                             0, 0, 0, 0, 0, 0, 0, 0,
+                             5, 10, 10, 10, 10, 10, 10, 5,
+                             -5, 0, 0, 0, 0, 0, 0, -5,
+                             -5, 0, 0, 0, 0, 0, 0, -5,
+                             -5, 0, 0, 0, 0, 0, 0, -5,
+                             -5, 0, 0, 0, 0, 0, 0, -5,
+                             -5, 0, 0, 0, 0, 0, 0, -5,
+                             0, 0, 0, 5, 5, 0, 0, 0},
+                            {// const int queensB[64] = {
+                             -20, -10, -10, -5, -5, -10, -10, -20,
+                             -10, 0, 0, 0, 0, 0, 0, -10,
+                             -10, 0, 5, 5, 5, 5, 0, -10,
+                             -5, 0, 5, 5, 5, 5, 0, -5,
+                             0, 0, 5, 5, 5, 5, 0, -5,
+                             -10, 5, 5, 5, 5, 5, 0, -10,
+                             -10, 0, 5, 0, 0, 0, 0, -10,
+                             -20, -10, -10, -5, -5, -10, -10, -20},
+
+                            {// const int kingsB[64] = {
+                             -80, -70, -70, -70, -70, -70, -70, -80,
+                             -60, -60, -60, -60, -60, -60, -60, -60,
+                             -40, -50, -50, -60, -60, -50, -50, -40,
+                             -30, -40, -40, -50, -50, -40, -40, -30,
+                             -20, -30, -30, -40, -40, -30, -30, -20,
+                             -10, -20, -20, -20, -20, -20, -20, -10,
+                             20, 20, -5, -5, -5, -5, 20, 20,
+                             20, 30, 10, 0, 0, 10, 30, 20}};
+
+}
+
 namespace
 {
     string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -130,7 +193,10 @@ namespace
     {
         return index >= 0 && index < 64;
     }
-
+    int invertY(int index)
+    {
+        return indexToRank(index) * 8 + indexToFile(index);
+    }
 }
 
 #endif

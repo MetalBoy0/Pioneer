@@ -1,12 +1,40 @@
 #include "moveOrder.h"
-#include <stdlib.h>
 
-using namespace std;
 struct MoveScore
 {
     Move move;
     int score;
 };
+
+void quickSort(MoveScore *moveScores, int left, int right)
+{
+    int i = left, j = right;
+    MoveScore tmp;
+    int pivot = moveScores[(left + right) / 2].score;
+
+    /* partition */
+    while (i <= j)
+    {
+        while (moveScores[i].score > pivot)
+            i++;
+        while (moveScores[j].score < pivot)
+            j--;
+        if (i <= j)
+        {
+            tmp = moveScores[i];
+            moveScores[i] = moveScores[j];
+            moveScores[j] = tmp;
+            i++;
+            j--;
+        }
+    };
+
+    /* recursion */
+    if (left < j)
+        quickSort(moveScores, left, j);
+    if (i < right)
+        quickSort(moveScores, i, right);
+}
 
 void sortMoves(MoveList *moveList, Move prevMove, Board *board, bool onlyCaptures)
 {
@@ -46,18 +74,9 @@ void sortMoves(MoveList *moveList, Move prevMove, Board *board, bool onlyCapture
             moveScores[i].score -= 10;
         }
     }
+    quickSort(moveScores, 0, moveCount - 1);
     for (int i = 0; i < moveCount; i++)
     {
-        for (int j = i + 1; j < moveCount; j++)
-        {
-            if (moveScores[j].score > moveScores[i].score)
-            {
-                MoveScore temp = moveScores[i];
-                moveScores[i] = moveScores[j];
-                moveScores[j] = temp;
-                moveList->moves[i] = moveScores[i].move;
-                moveList->moves[j] = moveScores[j].move;
-            }
-        }
+        moveList->moves[i] = moveScores[i].move;
     }
 }

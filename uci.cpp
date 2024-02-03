@@ -164,7 +164,11 @@ void parsePosition(istringstream &parser)
         board.loadFEN(fen, isWhite, whiteCanCastleKingSide, whiteCanCastleQueenSide, blackCanCastleKingSide, blackCanCastleQueenSide, -1);
     }
     string moveS;
-    parser >> moveS;
+    while (parser >> moveS) {
+        if (moveS == "moves") {
+            break;
+        }
+    }
     if (moveS == "moves")
     {
         while (parser >> moveS)
@@ -180,7 +184,7 @@ void parsePosition(istringstream &parser)
 void parseGo(istringstream &parser)
 {
     bool perft = false;             // Is a perft search
-    unsigned int depthValue = 0;    // Targeted depth of the search
+    unsigned int depthValue = 100;    // Targeted depth of the search
     unsigned int nodesCount = 0;    // Max number of nodes to search
     unsigned int moveTimeValue = 0; // Max time to search in milliseconds
     unsigned int wtime = 0;         // White time
@@ -234,9 +238,9 @@ void parseGo(istringstream &parser)
             btime = stoi(btimeInput);
         }
     }
-    if (depthValue == 0)
+    if (moveTimeValue == 0)
     {
-        depthValue = 6;
+        moveTimeValue = 1000;
     }
     if (perft)
     {
