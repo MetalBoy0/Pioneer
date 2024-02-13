@@ -5,6 +5,8 @@
 #include "../../uci.h"
 #include "evaluate.h"
 #include "moveOrder.h"
+#include "transposition.h"
+#include <cmath>
 #include <cassert>
 #include <chrono>
 
@@ -31,6 +33,8 @@ struct searchDiagnostics
     unsigned int cutoffs;
 };
 
+
+TranspositionTable tt(pow(2, 10));
 searchDiagnostics diagnostics;
 
 struct MoveVal
@@ -88,6 +92,10 @@ float qsearch(Board *board, int ply, float alpha, float beta)
 
 float search(Board *board, unsigned int depth, int ply, float alpha, float beta)
 {
+
+    
+    
+
     diagnostics.nodes++;
 
     if (depth == 0)
@@ -160,7 +168,9 @@ void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 
         bestMove.value = -100000;
         search(board, i, 0, NEGINF, POSINF);
         int currentTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
-        cout << "info depth " << i << " score cp " << bestMove.value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes * 1000 / (currentTime - startDepthTime + 1) << " pv \n";
+        float hashFullF = tt.getUsed() / tt.getSize();
+        int hashFull = hashFullF * 1000;
+        cout << "info depth " << i << " score cp " << bestMove.value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes * 1000 / (currentTime - startDepthTime + 1) << " hashfull " << hashFull << " pv \n";
         startMove = bestMove.move;
         if (IsMate(bestMove.value))
         {
@@ -188,6 +198,8 @@ void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 
 
 Move startSearch(Board *board, unsigned int depth, int maxTime, int maxNodes, int wtime, int btime)
 {
+    
+    
     if (wtime != 0 && btime != 0)
     {
         maxTime = (wtime + btime) / 4;

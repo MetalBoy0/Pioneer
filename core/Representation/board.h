@@ -199,4 +199,27 @@ namespace
     }
 }
 
+class RNG
+{
+private:
+    unsigned long long seed;
+
+public:
+    int rand64()
+    {
+        seed ^= (seed >> 15);
+        seed ^= (seed << 32);
+        seed ^= (seed >> 21);
+        return seed * 893652645892356ULL;
+    }
+};
+namespace Zobrist
+{
+    extern int piece[12][64];
+    extern int side[2];
+    extern int castle[16];
+    extern int enPassant[8];
+    extern void init();
+}
+
 #endif

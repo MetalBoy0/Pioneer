@@ -10,6 +10,7 @@
 #include <chrono>
 #include "core\MoveGeneration\movegen.h"
 #include "microbench\microbench.h"
+#include "core\search\search.h"
 
 #define MAX_INT -1u;
 #define MAX_DEPTH 8;
@@ -240,7 +241,7 @@ void parseGo(istringstream &parser)
     }
     if (moveTimeValue == 0)
     {
-        moveTimeValue = 1000;
+        moveTimeValue = 2000;
     }
     if (perft)
     {

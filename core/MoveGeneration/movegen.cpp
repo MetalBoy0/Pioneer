@@ -63,8 +63,8 @@ void generateCheckBB(Board *board)
                 continue;
             }
             // Check if there is a piece in between the rook and the king
-            Bitboard between = sendRay(&board->allPiecesBB, dir, piece);
-            if (between & king)
+            Bitboard between = bitboardRay(kingIndex, piece) & board->allPiecesBB & ~king;
+            if (!between)
             {
                 board->checkers.index[board->checkers.count] = piece;
                 board->checkers.count++;
