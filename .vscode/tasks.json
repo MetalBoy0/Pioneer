@@ -6,7 +6,7 @@
             "command": "C:\\msys64\\mingw64\\bin\\g++.exe",
             "args": [
                 "-fdiagnostics-color=always",
-                "-O3",
+				"-O3",
                 "${workspaceFolder}\\main.cpp",
                 "${workspaceFolder}\\uci.cpp",
                 "${workspaceFolder}\\core\\Representation\\board.cpp",
@@ -18,6 +18,7 @@
                 "${workspaceFolder}\\core\\Search\\search.cpp",
                 "${workspaceFolder}\\core\\Search\\evaluate.cpp",
                 "${workspaceFolder}\\core\\Search\\moveOrder.cpp",
+				"${workspaceFolder}\\core\\Search\\transposition.cpp",
                 "-o",
                 "${workspaceFolder}\\.vscode\\Debug.exe"
             ],

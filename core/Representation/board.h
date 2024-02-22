@@ -37,6 +37,10 @@ public:
     int removeCastlingRightsWK = -1;
     int removeCastlingRightsBQ = -1;
     int removeCastlingRightsBK = -1;
+    int castleKey;
+    unsigned long long pieceHash = 0;
+    unsigned long long enPassantHash = 0;
+    unsigned long long zobristKey = 0;
     bool inCheck;       // If if the current side to move is in check.
     indexList checkers; // Number of checks
 
@@ -207,19 +211,20 @@ private:
 public:
     int rand64()
     {
+        seed += seed/2 + 78651276235ULL;
         seed ^= (seed >> 15);
         seed ^= (seed << 32);
-        seed ^= (seed >> 21);
+        seed ^= ((seed + 78651276235ULL) >> 21);
         return seed * 893652645892356ULL;
     }
 };
 namespace Zobrist
 {
-    extern int piece[12][64];
-    extern int side[2];
-    extern int castle[16];
-    extern int enPassant[8];
-    extern void init();
+    extern unsigned long long piece[12][64];
+    extern unsigned long long side[2];
+    extern unsigned long long castle[16];
+    extern unsigned long long enPassant[8];
+    extern void setup();
 }
 
 #endif

@@ -1,26 +1,56 @@
 #include "transposition.h"
 
-
-void TranspositionTable::store(int zobrist, int depth, int value, Move bestMove)
+void TranspositionTable::store(unsigned long long zobrist, int depth, int value, Move bestMove, EvalType evalType)
 {
     int index = zobrist % size;
-    table[index].zobrist = zobrist;
-    table[index].depth = depth;
-    table[index].value = value;
-    table[index].bestMove = bestMove;
+    Entry entry = table[index];
+    if (entry.evalType == NOTINIT)
+    {
+        used++;
+    }
+    entry.zobrist = zobrist;
+    entry.depth = depth;
+    entry.value = value;
+    entry.bestMove = bestMove;
+    entry.evalType = evalType;
+    table[index] = entry;
 }
 
-TranspositionTable::Entry TranspositionTable::probe(int zobrist)
+Move TranspositionTable::getMove(int zobrist)
 {
     int index = zobrist % size;
-    if (table[index].zobrist == zobrist)
+    Entry entry = table[index];
+    if (entry.zobrist == zobrist)
     {
-        return table[index];
+        return entry.bestMove;
     }
-    else
+    return failed;
+}
+
+int TranspositionTable::probe(unsigned long long zobrist, int depth, int alpha, int beta)
+{
+    unsigned int index = zobrist % size;
+    Entry entry = table[index];
+    if (entry.zobrist == zobrist && entry.depth >= depth)
     {
-        return Entry();
+        int score = entry.value;
+
+        if (entry.evalType == Exact)
+        {
+            return score;
+        }
+
+        if (entry.evalType == Upper && score <= alpha)
+        {
+            return score;
+        }
+
+        if (entry.evalType == Lower && score >= beta)
+        {
+            return score;
+        }
     }
+    return failed;
 }
 
 void TranspositionTable::clear()
@@ -33,8 +63,21 @@ void TranspositionTable::clear()
 
 TranspositionTable::TranspositionTable(int size)
 {
-    this->size = size;
-    this->table = new Entry[size];
+    int entrySize = sizeof Entry();
+    this->size = (int)(size / entrySize);
+    this->table = new Entry[this->size];
+    for (int i = 0; i < this->size; i++)
+    {
+        table[i].evalType = NOTINIT;
+    }
+    for (int i = 0; i < this->size; i++)
+    {
+        Entry t = table[i];
+        if (t.evalType != NOTINIT)
+        {
+            cout << i << " " << t.evalType << "\n";
+        }
+    }
 }
 
 TranspositionTable::~TranspositionTable()
@@ -44,15 +87,5 @@ TranspositionTable::~TranspositionTable()
 
 int TranspositionTable::getUsed()
 {
-    int used = 0;
-    for (int i = 0; i < size; i++)
-    {
-        if (table[i].zobrist % size == i)
-        {
-            used++;
-        }
-    }
     return used;
 }
-
-

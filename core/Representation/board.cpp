@@ -125,6 +125,8 @@ void Board::setMove(Move move)
     // Update array
     board[from] = Pieces::Empty;
     board[to] = movePiece;
+    zobristKey ^= Zobrist::piece[movePiece][from];
+    zobristKey ^= Zobrist::piece[movePiece][to];
     int invert = invertY(from);
     score -= (side == Pieces::Color::White ? 1 : -1) * (PieceSquareTable::psq[pieceType][Pieces::isWhite(movePiece) ? from : invert]);
     // update PieceList
@@ -144,6 +146,7 @@ void Board::setMove(Move move)
         removePiece(&pieces[capturedType][capturedSide / 8], to);
         clearBit(&colorBB[capturedSide], to);
         score -= (capturedSide == Pieces::Color::White ? 1 : -1) * (PieceSquareTable::psq[capturedType][Pieces::isWhite(capturedPiece) ? to : invertY(to)]);
+        zobristKey ^= Zobrist::piece[capturedPiece][to];
     }
 
     // Set it to the 'to' square
@@ -169,6 +172,9 @@ void Board::revertSetMove(Move move)
     board[from] = movePiece;
     board[to] = capturedPiece;
 
+    zobristKey ^= Zobrist::piece[movePiece][to];
+    zobristKey ^= Zobrist::piece[movePiece][from];
+
     // update PieceList
     movePieceList(&pieces[pieceType][side / 8], to, from);
 
@@ -185,6 +191,7 @@ void Board::revertSetMove(Move move)
         // Update PieceList
         addPiece(&pieces[capturedType][capturedSide / 8], to);
         setBit(&colorBB[capturedSide], to);
+        zobristKey ^= Zobrist::piece[capturedPiece][to];
         score += (capturedSide == Pieces::Color::White ? 1 : -1) * (PieceSquareTable::psq[capturedType][Pieces::isWhite(capturedPiece) ? to : invertY(to)]);
     }
 
@@ -365,19 +372,24 @@ indexList Board::getCheckers()
 // Plays a move on the board
 void Board::makeMove(Move move)
 {
+    //cout << zobristKey << "\n";
     bool moveEnPassant = isEnPassant(move);
     enPassantHistory[ply] = enPassantSquare;
     enPassantSquare = -1;
 
     if (isPromotion(move))
     {
-        // Make the premoted piece a pawn
+        // this code turns a promoting pawn into its promotion, but doesn't move it yet
+
+        //cout << "promote";
         int from = getFrom(move);
         score -= (isWhite ? 1 : -1) * PieceSquareTable::psq[Pieces::Pawn][isWhite ? from : invertY(from)];
         Piece promotion = getPromotion(move) | sideToMove;
         board[from] = promotion;
         setBit(&pieceBB[getPromotion(move)], from);
         clearBit(&pieceBB[Pieces::Pawn], from);
+        zobristKey ^= Zobrist::piece[Pieces::Pawn | sideToMove][from];
+        zobristKey ^= Zobrist::piece[promotion][from];
         // Update PieceList
         removePiece(&pieces[Pieces::Pawn][sideToMove / 8], from);
         addPiece(&pieces[getPromotion(move)][sideToMove / 8], from);
@@ -402,7 +414,7 @@ void Board::makeMove(Move move)
     }
     if (Pieces::isKing(board[getFrom(move)]) && (isWhite ? (whiteCanCastleKingSide | whiteCanCastleQueenSide) : (blackCanCastleKingSide | blackCanCastleQueenSide)))
     {
-        if (sideToMove == Pieces::White)
+        if (sideToMove == Pieces::White && move)
         {
             whiteCanCastleKingSide = false;
             whiteCanCastleQueenSide = false;
@@ -434,8 +446,6 @@ void Board::makeMove(Move move)
     pastMoves[ply] = move;
 
     // Update the board
-
-    // if enPassant
     if (getFrom(move) == 0 && board[getFrom(move)] == (Pieces::Black | Pieces::Rook) && blackCanCastleQueenSide)
     {
         blackCanCastleQueenSide = false;
@@ -537,14 +547,18 @@ void Board::makeMove(Move move)
 
         int enemyPawn = getTo(move) + (isWhite ? 8 : -8);
         score -= (isWhite ? 1 : -1) * PieceSquareTable::psq[Pieces::getType(board[enemyPawn])][isWhite ? enemyPawn : invertY(enemyPawn)];
+        zobristKey ^= Zobrist::piece[otherSide | Pieces::Pawn][enemyPawn];
         board[enemyPawn] = Pieces::Empty;
         clearBit(&pieceBB[Pieces::Pawn], enemyPawn);
         clearBit(&colorBB[otherSide], enemyPawn);
         setBit(&pieceBB[Pieces::Empty], enemyPawn);
+
+        enPassantHash = Zobrist::enPassant[indexToFile(enemyPawn)];
     }
     else
     {
         setMove(move);
+        enPassantHash = 0;
     }
     // Update ply
     ply++;
@@ -567,6 +581,11 @@ void Board::makeMove(Move move)
     attackedBB[otherSide] = getAttackedBB(otherSide);
 
     inCheck = attackedBB[otherSide] & pieceBB[Pieces::King] & colorBB[sideToMove];
+    castleKey = blackCanCastleKingSide << 3 | blackCanCastleQueenSide << 2 |
+                whiteCanCastleKingSide << 1 | whiteCanCastleKingSide << 0;
+
+    //zobristKey = enPassantHash ^ Zobrist::side[isWhite] ^ Zobrist::castle[castleKey];
+    //cout << zobristKey;
 }
 
 void Board::undoMove()
@@ -591,6 +610,8 @@ void Board::undoMove()
         board[to] = Pieces::Pawn | sideToMove;
         clearBit(&pieceBB[getPromotion(pastMoves[ply])], to);
         setBit(&pieceBB[Pieces::Pawn], to);
+        zobristKey ^= Zobrist::piece[Pieces::Pawn | sideToMove][to];
+        zobristKey ^= Zobrist::piece[promotion][to];
         // Update PieceList
         removePiece(&pieces[getPromotion(pastMoves[ply])][sideToMove / 8], to);
         addPiece(&pieces[Pieces::Pawn][sideToMove / 8], to);
@@ -623,15 +644,18 @@ void Board::undoMove()
     else
     {
         revertSetMove(pastMoves[ply]);
+        enPassantHash = 0;
     }
     if (isEnPassant(pastMoves[ply]))
     {
         int enemyPawn = getTo(pastMoves[ply]) + (isWhite ? 8 : -8);
         score += (isWhite ? 1 : -1) * PieceSquareTable::psq[Pieces::Pawn][isWhite ? enemyPawn : invertY(enemyPawn)];
+        zobristKey ^= Zobrist::piece[otherSide | Pieces::Pawn][enemyPawn];
         setBit(&pieceBB[Pieces::Pawn], enemyPawn);
         setBit(&colorBB[otherSide], enemyPawn);
         clearBit(&pieceBB[Pieces::Empty], enemyPawn);
         board[enemyPawn] = otherSide | Pieces::Pawn;
+        enPassantHash = Zobrist::enPassant[indexToFile(enemyPawn)];
     }
     if (ply == removeCastlingRightsWK)
     {
@@ -663,6 +687,11 @@ void Board::undoMove()
     attackedBB[otherSide] = getAttackedBB(otherSide);
 
     inCheck = attackedBB[otherSide] & pieceBB[Pieces::King] & colorBB[sideToMove];
+    castleKey = blackCanCastleKingSide << 3 | blackCanCastleQueenSide << 2 |
+                whiteCanCastleKingSide << 1 | whiteCanCastleKingSide << 0;
+
+    //zobristKey = enPassantHash ^ Zobrist::side[isWhite] ^ Zobrist::castle[castleKey];
+    //cout << zobristKey << "\n";
 }
 
 bool Board::isCheck(Move move)
@@ -764,6 +793,8 @@ Board::Board()
     loadFEN(startFen, isWhite, whiteCanCastleKingSide, whiteCanCastleQueenSide, blackCanCastleKingSide, blackCanCastleQueenSide, enPassantSquare);
     initDirections();
     initBBs();
+    Zobrist::setup();
+    zobristKey ^= Zobrist::castle[15] ^ Zobrist::side[true];
     attackedBB[sideToMove] = getAttackedBB(sideToMove);
     attackedBB[otherSide] = getAttackedBB(otherSide);
     assert(~pieceBB[0] == allPiecesBB);
@@ -791,11 +822,36 @@ void Board::printBoard()
     }
     cout << endl;
 }
-
-void Zobrist::init()
+namespace Zobrist
 {
-    for (int p=0;p<12;p++)
+    unsigned long long piece[12][64];
+    unsigned long long side[2];
+    unsigned long long castle[16];
+    unsigned long long enPassant[8];
+    void setup()
     {
-        //Piece[p]
+
+        cout << "Initializing Zobrist hash... ";
+        RNG rng;
+
+        for (int p = 0; p < 12; p++)
+        {
+            for (int i = 0; i < 64; i++)
+            {
+                piece[p][i] = rng.rand64();
+            }
+        }
+        side[0] = rng.rand64();
+        side[1] = rng.rand64();
+        for (int c = 0; c < 16; c++)
+        {
+            castle[c] = rng.rand64();
+        }
+        for (int e = 0; e < 8; e++)
+        {
+            enPassant[e] = rng.rand64();
+        }
+        cout << "done"
+             << "\n";
     }
 }

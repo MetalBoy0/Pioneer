@@ -165,8 +165,10 @@ void parsePosition(istringstream &parser)
         board.loadFEN(fen, isWhite, whiteCanCastleKingSide, whiteCanCastleQueenSide, blackCanCastleKingSide, blackCanCastleQueenSide, -1);
     }
     string moveS;
-    while (parser >> moveS) {
-        if (moveS == "moves") {
+    while (parser >> moveS)
+    {
+        if (moveS == "moves")
+        {
             break;
         }
     }
@@ -185,7 +187,7 @@ void parsePosition(istringstream &parser)
 void parseGo(istringstream &parser)
 {
     bool perft = false;             // Is a perft search
-    unsigned int depthValue = 100;    // Targeted depth of the search
+    unsigned int depthValue = 100;  // Targeted depth of the search
     unsigned int nodesCount = 0;    // Max number of nodes to search
     unsigned int moveTimeValue = 0; // Max time to search in milliseconds
     unsigned int wtime = 0;         // White time
@@ -246,12 +248,14 @@ void parseGo(istringstream &parser)
     if (perft)
     {
         // Perft search
+        cout << board.zobristKey << "\n";
         auto start = chrono::high_resolution_clock::now();
         unsigned int perft = startPerft(board, depthValue);
         auto stop = chrono::high_resolution_clock::now();
         cout << "Perft search to depth: " << depthValue << "\n"
              << "Took " << chrono::duration_cast<chrono::milliseconds>(stop - start).count() << "ms\n";
-        cout << "Nodes: " << perft;
+        cout << "Nodes: " << perft << "\n";
+        cout << board.zobristKey;
     }
     else
     {
@@ -273,8 +277,10 @@ void parseMakeMove(istringstream &parser)
 {
     string input;
     parser >> input;
+    cout << board.zobristKey << "\n";
     Move move = stringToMove(input, board);
     board.makeMove(move);
+    cout << board.zobristKey << "\n";
 }
 
 void parseUndoMove(istringstream &parser)

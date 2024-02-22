@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/.vscode/a.exe",
+            "program": "${workspaceFolder}/.vscode/Debug.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

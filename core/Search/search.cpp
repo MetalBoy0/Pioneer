@@ -31,10 +31,10 @@ struct searchDiagnostics
     unsigned int qNodes;
     unsigned int time;
     unsigned int cutoffs;
+    unsigned int transpositionCuttoffs;
 };
 
-
-TranspositionTable tt(pow(2, 10));
+TranspositionTable tt(pow(2, 20));
 searchDiagnostics diagnostics;
 
 struct MoveVal
@@ -75,9 +75,18 @@ float qsearch(Board *board, int ply, float alpha, float beta)
     }
     for (int i = 0; i < moveList.count; i++)
     {
+        //unsigned long long oldZ = board->zobristKey;
+        //if (oldZ == 18446744072653600672ULL)
+        //{
+        //    cout << "bad";
+        //}
         board->makeMove(moveList.moves[i]);
         float value = -qsearch(board, ply + 1, -beta, -alpha);
         board->undoMove();
+        //if (oldZ != board->zobristKey)
+        //{
+        //    cout << "Bad";
+        //}
         if (value >= beta)
         {
             return beta;
@@ -93,11 +102,6 @@ float qsearch(Board *board, int ply, float alpha, float beta)
 float search(Board *board, unsigned int depth, int ply, float alpha, float beta)
 {
 
-    
-    
-
-    diagnostics.nodes++;
-
     if (depth == 0)
     {
         return qsearch(board, ply, alpha, beta);
@@ -112,6 +116,22 @@ float search(Board *board, unsigned int depth, int ply, float alpha, float beta)
             return alpha;
         }
     }
+
+    int ttVal = tt.probe(board->zobristKey, depth, alpha, beta);
+
+    if (ttVal != tt.failed)
+    {
+        if (ply == 0)
+        {
+            bestMove.move = tt.getMove(board->zobristKey);
+            bestMove.value = ttVal;
+        }
+        diagnostics.transpositionCuttoffs++;
+        return ttVal;
+    }
+
+    diagnostics.nodes++;
+
     MoveList moveList;
     generateMoves(board, &moveList);
 
@@ -127,28 +147,42 @@ float search(Board *board, unsigned int depth, int ply, float alpha, float beta)
         }
     }
     sortMoves(&moveList, startMove, board);
+    TranspositionTable::EvalType evalType = TranspositionTable::Upper;
+
+    Move bestMoveCurrent = 0;
+
     for (int i = 0; i < moveList.count; i++)
     {
         Move move = moveList.moves[i];
-
+        //unsigned long long oldZ = board->zobristKey;
         board->makeMove(move);
         float value = -search(board, depth - 1, ply + 1, -beta, -alpha);
         board->undoMove();
+        //if (oldZ != board->zobristKey)
+        //{
+        //    cout << moveToString(move) << " " << depth;
+        //}
         if (value >= beta)
         {
+            tt.store(board->zobristKey, depth, value, move, TranspositionTable::Lower);
             return beta;
         }
         if (value > alpha)
         {
             alpha = value;
+            evalType = TranspositionTable::Exact;
             if (ply == 0)
             {
                 bestMove.move = move;
                 bestMove.value = value;
             }
             path.moves[ply] = move;
+            bestMoveCurrent = move;
         }
     }
+
+    tt.store(board->zobristKey, depth, alpha, bestMoveCurrent, evalType);
+
     return alpha;
 }
 
@@ -158,8 +192,10 @@ void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 
     diagnostics.qNodes = 0;
     diagnostics.time = 0;
     diagnostics.cutoffs = 0;
+    diagnostics.transpositionCuttoffs = 0;
     startMove = 0;
     cout << board->score << "\n";
+    cout << board->zobristKey << "\n";
     int startTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
     for (int i = 1; i <= maxDepth; i++)
     {
@@ -168,9 +204,12 @@ void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 
         bestMove.value = -100000;
         search(board, i, 0, NEGINF, POSINF);
         int currentTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
-        float hashFullF = tt.getUsed() / tt.getSize();
-        int hashFull = hashFullF * 1000;
-        cout << "info depth " << i << " score cp " << bestMove.value << " nodes " << diagnostics.nodes << " nps " << diagnostics.nodes * 1000 / (currentTime - startDepthTime + 1) << " hashfull " << hashFull << " pv \n";
+        int used = (float)(tt.used) / (float)(tt.size) * 1000;
+        cout << "info depth " << i
+             << " score cp " << bestMove.value
+             << " nodes " << diagnostics.nodes
+             << " nps " << diagnostics.nodes * 1000 / (currentTime - startDepthTime + 1)
+             << " hashfull " << used << " pv \n";
         startMove = bestMove.move;
         if (IsMate(bestMove.value))
         {
@@ -179,7 +218,7 @@ void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 
 
         if ((currentTime - startTime) > maxTime && maxTime != 0)
         {
-            break;
+            // break;
         }
         if (diagnostics.nodes > maxNodes && maxNodes != 0)
         {
@@ -189,17 +228,18 @@ void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 
         {
             break;
         }
+
         diagnostics.nodes = 0;
         diagnostics.qNodes = 0;
         diagnostics.time = 0;
         diagnostics.cutoffs = 0;
+        diagnostics.transpositionCuttoffs = 0;
     }
 }
 
 Move startSearch(Board *board, unsigned int depth, int maxTime, int maxNodes, int wtime, int btime)
 {
-    
-    
+
     if (wtime != 0 && btime != 0)
     {
         maxTime = (wtime + btime) / 4;
@@ -229,9 +269,14 @@ unsigned int perft(Board *board, unsigned int depth)
     for (int i = 0; i < moveList.count; i++)
     {
         Move move = moveList.moves[i];
+        //unsigned long long oldZ = board->zobristKey;
         board->makeMove(move);
         nodes += perft(board, depth - 1);
         board->undoMove();
+        //if (oldZ != board->zobristKey)
+        //{
+        //    cout << moveToString(move) << " " << depth;
+        //}
     }
     return nodes;
 }
@@ -247,7 +292,7 @@ unsigned int startPerft(Board board, unsigned int depth)
         board.makeMove(move);
         int mNode = perft(&board, depth - 1);
         board.undoMove();
-        cout << moveToString(move) << ": " << mNode << "\n";
+        cout << moveToString(move) << ": " << mNode << " " << board.zobristKey << "\n";
         nodes += mNode;
     }
     return nodes;
