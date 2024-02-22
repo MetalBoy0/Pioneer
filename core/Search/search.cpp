@@ -218,7 +218,7 @@ void startIterativeDeepening(Board *board, unsigned int maxDepth, int maxTime = 
 
         if ((currentTime - startTime) > maxTime && maxTime != 0)
         {
-            // break;
+            break;
         }
         if (diagnostics.nodes > maxNodes && maxNodes != 0)
         {
