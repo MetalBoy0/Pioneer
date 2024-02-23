@@ -41,6 +41,8 @@ Bitboard kingMoves[64];
 
 Bitboard dirToBB[8][64];
 
+Bitboard bitboardRays[64][64];
+
 void initBBs()
 {
     // Knights
@@ -133,6 +135,13 @@ void initBBs()
             dirToBB[j][i] = sendRay(&bb, queenDirections[j], i) | sendRay(&bb, queenDirectionsOpp[j], i);
         }
     }
+    for (int i = 0; i < 64; i++)
+    {
+        for (int y = 0; y < 64; y++)
+        {
+            bitboardRays[i][y] = bitboardRay(i, y);
+        }
+    }
 }
 
 void printBitboard(Bitboard *bb)
@@ -162,23 +171,7 @@ Bitboard bitboardRay(Direction dir, int square)
 }
 
 // A bitboard of all the squares in the ray from the square to the square (includes starting square but not ending square   )
-Bitboard bitboardRay(int from, int to)
-{
-    Bitboard bb = 0ULL;
-    Direction dir = getDirectionBetween(from, to);
-    // assert (from != to);
-    if (dir == NULLDIR)
-    {
-        return 0ULL;
-    }
-    int i = from;
-    while (i != to)
-    {
-        setBit(&bb, i);
-        i += dir;
-    }
-    return bb;
-}
+Bitboard bitboardRay(int from, int to) { return bitboardRays[from][to]; }
 
 Bitboard sendRay(Bitboard *bb, Direction dir, int square)
 {

@@ -37,7 +37,7 @@ public:
 
     void store(unsigned long long zobrist, int depth, int value, Move bestMove, EvalType evalType);
     int probe(unsigned long long zobrist, int depth, int alpha, int beta);
-    Move getMove(int zobrist);
+    Move getMove(unsigned long long zobrist);
     void clear();
 
     int getSize() { return size; }

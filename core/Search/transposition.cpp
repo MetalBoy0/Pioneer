@@ -16,7 +16,7 @@ void TranspositionTable::store(unsigned long long zobrist, int depth, int value,
     table[index] = entry;
 }
 
-Move TranspositionTable::getMove(int zobrist)
+Move TranspositionTable::getMove(unsigned long long zobrist)
 {
     int index = zobrist % size;
     Entry entry = table[index];

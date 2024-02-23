@@ -584,7 +584,8 @@ void Board::makeMove(Move move)
     castleKey = blackCanCastleKingSide << 3 | blackCanCastleQueenSide << 2 |
                 whiteCanCastleKingSide << 1 | whiteCanCastleKingSide << 0;
 
-    //zobristKey = enPassantHash ^ Zobrist::side[isWhite] ^ Zobrist::castle[castleKey];
+    zobristKey ^= Zobrist::side[isWhite];
+    zobristKey ^= Zobrist::side[!isWhite];
     //cout << zobristKey;
 }
 
@@ -692,6 +693,8 @@ void Board::undoMove()
 
     //zobristKey = enPassantHash ^ Zobrist::side[isWhite] ^ Zobrist::castle[castleKey];
     //cout << zobristKey << "\n";
+    zobristKey ^= Zobrist::side[isWhite];
+    zobristKey ^= Zobrist::side[!isWhite];
 }
 
 bool Board::isCheck(Move move)
