@@ -20,6 +20,7 @@ float min(float a, float b)
 {
     return a < b ? a : b;
 }
+
 float max(float a, float b)
 {
     return a > b ? a : b;
@@ -34,7 +35,7 @@ struct searchDiagnostics
     unsigned int transpositionCuttoffs;
 };
 
-TranspositionTable tt(pow(2, 20));
+TranspositionTable tt(pow(2, 26));
 searchDiagnostics diagnostics;
 
 struct MoveVal
