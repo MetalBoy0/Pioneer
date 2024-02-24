@@ -28,7 +28,7 @@ void generateCheckBB(Board *board)
         appendBB(&board->checkers, canCheck);
 
         // Check for pawn checks
-        if (board->sideToMove == Pieces::Color::White)
+        if (board->isWhite)
         {
             Bitboard pawns = board->pieceBB[Pieces::Pawn] & board->colorBB[board->otherSide];
             Bitboard canCheck = ((shift<SE>(&king) | shift<SW>(&king)) & kingMoves[kingIndex]) & pawns;
@@ -119,51 +119,50 @@ void generatePawnMoves(Board *board, MoveList *MoveList, bool onlyCaptures)
     // Shift the pawn BBs to get the moves
     Bitboard kingBB = board->pieceBB[Pieces::King] & board->colorBB[board->sideToMove];
     int kingIndex = getLSB(&kingBB);
+    Direction up = board->isWhite ? S : N;
     Bitboard pawns = board->pieceBB[Pieces::Pawn] & board->colorBB[board->sideToMove];
-    Bitboard moves = 0;
-    Bitboard captureE = 0;
-    Bitboard captureW = 0;
+    Bitboard moves;
+    Bitboard singlePush;
+    Bitboard doublePush;
+    Bitboard captureE;
+    Bitboard captureW;
 
-    if (board->sideToMove == Pieces::Color::White)
+    moves = shift(&pawns, up, 1) & board->pieceBB[0];
+
+    if (board->isWhite)
     {
-        moves |= shift<S>(&pawns);
+        captureE = shift<SE>(&pawns);
+        captureW = shift<SW>(&pawns);
     }
     else
     {
-        moves |= shift<N>(&pawns);
+        captureE = shift<NE>(&pawns);
+        captureW = shift<NW>(&pawns);
     }
 
-    if (board->sideToMove == Pieces::Color::White)
-    {
-        captureE |= shift<SE>(&pawns);
-        captureW |= shift<SW>(&pawns);
-    }
-    else
-    {
-        captureE |= shift<NE>(&pawns);
-        captureW |= shift<NW>(&pawns);
-    }
+    singlePush = moves & board->checkingBB;
 
-    moves &= board->pieceBB[0];
+    doublePush = moves & (board->isWhite ? rankMasks[5] : rankMasks[2]);
+    doublePush = shift(&doublePush, up, 1) & board->pieceBB[0] & board->checkingBB;
     // Add en passant to each of these
-    Bitboard mask = (board->colorBB[board->otherSide]);
+    Bitboard enPassantMask = (board->colorBB[board->otherSide]);
     Bitboard enPassantCheck = 0;
     if (board->enPassantSquare != -1)
     {
-        mask |= (1ULL << board->enPassantSquare);
+        enPassantMask |= (1ULL << board->enPassantSquare);
         // Check if the en passant will remove the king from check
         // If king is checked by pawn but not double checked
         if (board->checkers.count == 1 && Pieces::getType(board->board[board->checkers.index[0]]) == Pieces::Pawn)
         {
-            int up = board->sideToMove == Pieces::Color::White ? 8 : -8;
+            int up = board->isWhite ? 8 : -8;
             if (board->checkers.index[0] - up == board->enPassantSquare)
             {
                 enPassantCheck = getBitboardFromSquare(board->enPassantSquare);
             }
         }
     }
-    captureE &= mask;
-    captureW &= mask;
+    captureE &= enPassantMask;
+    captureW &= enPassantMask;
 
     // In check
     captureE &= board->checkingBB | enPassantCheck;
@@ -172,54 +171,48 @@ void generatePawnMoves(Board *board, MoveList *MoveList, bool onlyCaptures)
     // Decode BBs into moves
     if (!onlyCaptures)
     {
-        while (moves)
+        while (singlePush)
         {
 
-            int to = popLSB(&moves);
-            int from = to + (board->sideToMove == Pieces::Color::White ? 8 : -8);
+            int to = popLSB(&singlePush);
+            int from = to + (board->isWhite ? 8 : -8);
 
             Direction pin = board->isPinned(from);
             if (pin != NULLDIR)
             {
                 if (!(pin == N || pin == S))
                 {
+                    clearBit(&doublePush, to + up);
                     continue;
                 }
             }
-            if ((getBitboardFromSquare(to) & board->checkingBB))
+            if (indexToRank(to) == 0 || indexToRank(to) == 7)
             {
-                if (indexToRank(to) == 0 || indexToRank(to) == 7)
-                {
-                    appendMove(MoveList, board->getMove(from, to, Pieces::Queen));
-                    appendMove(MoveList, board->getMove(from, to, Pieces::Rook));
-                    appendMove(MoveList, board->getMove(from, to, Pieces::Bishop));
-                    appendMove(MoveList, board->getMove(from, to, Pieces::Knight));
-                }
-                else
-                {
-                    appendMove(MoveList, board->getMove(from, to));
-                }
+                appendMove(MoveList, board->getMove(from, to, Pieces::Queen));
+                appendMove(MoveList, board->getMove(from, to, Pieces::Rook));
+                appendMove(MoveList, board->getMove(from, to, Pieces::Bishop));
+                appendMove(MoveList, board->getMove(from, to, Pieces::Knight));
             }
-            // Double pawn push
-
-            if ((indexToRank(from) == 1 && board->isWhite) || (indexToRank(from) == 6 && !board->isWhite))
+            else
             {
-                int to2 = to - (board->sideToMove == Pieces::Color::White ? 8 : -8);
-                if (!(getBitboardFromSquare(to2) & board->checkingBB))
-                {
-                    continue;
-                }
-                if (board->board[to2] == Pieces::Empty)
-                {
-                    appendMove(MoveList, board->getMove(from, to2));
-                }
+                appendMove(MoveList, board->getMove(from, to));
+            }
+        }
+        // Double pawn push
+        while (doublePush)
+        {
+            int to = popLSB(&doublePush);
+            int from = to + (board->isWhite ? 16 : -16);
+            if (board->board[to] == Pieces::Empty)
+            {
+                appendMove(MoveList, board->getMove(from, to));
             }
         }
     }
     while (captureE)
     {
         int to = popLSB(&captureE);
-        int from = to - (board->sideToMove == Pieces::Color::White ? SE : NE);
+        int from = to - (board->isWhite ? SE : NE);
 
         if (distToEdge[from][getDirIndex(E)] == 0)
         {
@@ -244,7 +237,7 @@ void generatePawnMoves(Board *board, MoveList *MoveList, bool onlyCaptures)
             clearBit(&board->allPiecesBB, from);
             board->board[from] = Pieces::Empty;
 
-            int capturedPawn = to - (board->sideToMove == Pieces::Color::White ? -8 : 8);
+            int capturedPawn = to - (board->isWhite ? -8 : 8);
             clearBit(&board->pieceBB[Pieces::Pawn], capturedPawn);
             clearBit(&board->colorBB[board->otherSide], capturedPawn);
             clearBit(&board->allPiecesBB, capturedPawn);
@@ -289,7 +282,7 @@ void generatePawnMoves(Board *board, MoveList *MoveList, bool onlyCaptures)
     while (captureW)
     {
         int to = popLSB(&captureW);
-        int from = to - (board->sideToMove == Pieces::Color::White ? SW : NW);
+        int from = to - (board->isWhite ? SW : NW);
 
         if (distToEdge[from][getDirIndex(W)] == 0)
         {
@@ -314,7 +307,7 @@ void generatePawnMoves(Board *board, MoveList *MoveList, bool onlyCaptures)
             clearBit(&board->allPiecesBB, from);
             board->board[from] = Pieces::Empty;
 
-            int capturedPawn = to - (board->sideToMove == Pieces::Color::White ? -8 : 8);
+            int capturedPawn = to - (board->isWhite ? -8 : 8);
             clearBit(&board->pieceBB[Pieces::Pawn], capturedPawn);
             clearBit(&board->colorBB[board->otherSide], capturedPawn);
             clearBit(&board->allPiecesBB, capturedPawn);

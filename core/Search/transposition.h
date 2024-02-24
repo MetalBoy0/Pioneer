@@ -8,7 +8,7 @@ class TranspositionTable
 {
 public:
     int failed = INT32_MIN;
-    enum EvalType
+    enum EvalType : uint8_t
     {
         Exact,
         Lower,
@@ -17,8 +17,8 @@ public:
     };
     struct Entry
     {
-        int zobrist;
-        int depth;
+        unsigned long long zobrist;
+        char depth;
         int value;
         EvalType evalType;
         Move bestMove;

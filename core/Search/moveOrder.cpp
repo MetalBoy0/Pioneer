@@ -45,13 +45,15 @@ void sortMoves(MoveList *moveList, Move prevMove, Board *board, bool onlyCapture
         moveScores[i].move = moveList->moves[i];
         moveScores[i].score = 0;
         int from = getFrom(moveScores[i].move);
+        int to = getTo(moveScores[i].move);
+
         if (moveScores[i].move == prevMove)
         {
             moveScores[i].score += 1000000;
         }
-        if (board->isAttacked(from, board->isWhite ? Pieces::Black : Pieces::White) && !Pieces::isPawn(board->board[from]))
+        if (board->isAttacked(from, board->sideToMove) && !Pieces::isPawn(board->board[from]))
         {
-            moveScores[i].score += 200000;
+            moveScores[i].score += 2000;
         }
         if (isCapture(moveScores[i].move))
         {
@@ -61,19 +63,17 @@ void sortMoves(MoveList *moveList, Move prevMove, Board *board, bool onlyCapture
         {
             moveScores[i].score += 200000;
         }
-        if (board->isEnPassant(moveScores[i].move))
-        {
-            moveScores[i].score += 100000;
-        }
-        if (isCastle(moveScores[i].move))
-        {
-            moveScores[i].score += 100000;
-        }
         if (Pieces::getType(board->board[from]) == Pieces::King)
         {
             moveScores[i].score -= 10;
         }
+        if (board->isAttacked(to, board->sideToMove))
+        {
+            // Is attacked by enemy
+            moveScores[i].score -= 25;
+        }
     }
+    
     quickSort(moveScores, 0, moveCount - 1);
     for (int i = 0; i < moveCount; i++)
     {
